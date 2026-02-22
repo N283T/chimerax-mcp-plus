@@ -13,6 +13,7 @@ import httpx
 from fastmcp import FastMCP
 
 from chimerax_mcp.chimerax import ChimeraXClient, detect_chimerax, start_chimerax
+from chimerax_mcp.docs.search import DocSearch
 
 mcp = FastMCP("chimerax-mcp")
 
@@ -45,6 +46,17 @@ def get_client() -> ChimeraXClient:
     if _client is None:
         _client = ChimeraXClient()
     return _client
+
+
+_doc_search: DocSearch | None = None
+
+
+def get_doc_search() -> DocSearch:
+    """Get or create the document search instance."""
+    global _doc_search
+    if _doc_search is None:
+        _doc_search = DocSearch()
+    return _doc_search
 
 
 @mcp.tool()
@@ -294,6 +306,81 @@ def chimerax_session_open(path: str) -> dict[str, Any]:
         Result of the open command.
     """
     return _run_command(f"open {path}")
+
+
+@mcp.tool()
+def docs_search(
+    query: str,
+    category: str | None = None,
+    max_results: int = 5,
+) -> dict[str, Any]:
+    """Search ChimeraX documentation using natural language.
+
+    Use this tool to find relevant documentation before running ChimeraX
+    commands. Supports semantic search over commands, tools, tutorials,
+    and developer guides.
+
+    Args:
+        query: Natural language query (e.g., "how to color protein by chain")
+        category: Filter by category - "commands", "tools", "tutorials",
+                  "concepts", or "devel" (default: search all)
+        max_results: Maximum number of results (default: 5)
+
+    Returns:
+        Matching documentation chunks with metadata.
+    """
+    search = get_doc_search()
+    if not search.is_indexed():
+        search.ensure_index()
+
+    results = search.search(query=query, category=category, max_results=max_results)
+    return {
+        "status": "ok",
+        "results": [
+            {
+                "title": r["metadata"]["title"],
+                "section": r["metadata"]["section"],
+                "content": r["document"],
+                "category": r["metadata"]["category"],
+                "source_file": r["metadata"]["source_file"],
+            }
+            for r in results
+        ],
+    }
+
+
+@mcp.tool()
+def docs_lookup(
+    command_name: str,
+) -> dict[str, Any]:
+    """Look up documentation for a specific ChimeraX command by name.
+
+    Use this to get the full reference for a known command name.
+
+    Args:
+        command_name: Exact command name (e.g., "color", "open", "surface")
+
+    Returns:
+        All documentation chunks for that command.
+    """
+    search = get_doc_search()
+    if not search.is_indexed():
+        search.ensure_index()
+
+    results = search.lookup(command_name)
+    return {
+        "status": "ok",
+        "results": [
+            {
+                "title": r["metadata"]["title"],
+                "section": r["metadata"]["section"],
+                "content": r["document"],
+                "category": r["metadata"]["category"],
+                "source_file": r["metadata"]["source_file"],
+            }
+            for r in results
+        ],
+    }
 
 
 @mcp.tool()
