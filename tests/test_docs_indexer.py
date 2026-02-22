@@ -4,7 +4,6 @@ from pathlib import Path
 
 from chimerax_mcp.docs.indexer import DocChunk, categorize_file, chunk_html, parse_html
 
-
 SAMPLE_COMMAND_HTML = """\
 <html>
 <head><title>Command: color, rainbow</title></head>

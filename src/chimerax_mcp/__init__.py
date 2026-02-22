@@ -28,10 +28,7 @@ def _index_docs(args: argparse.Namespace) -> None:
     search = DocSearch(docs_path=docs_path, data_dir=data_dir)
     print("Building documentation index...")
     stats = search.build_index()
-    print(
-        f"Done: {stats['files_processed']} files, "
-        f"{stats['chunks_created']} chunks indexed."
-    )
+    print(f"Done: {stats['files_processed']} files, {stats['chunks_created']} chunks indexed.")
 
 
 def main() -> None:

@@ -6,9 +6,7 @@ import pytest
 
 from chimerax_mcp.docs.search import DocSearch
 
-REAL_DOCS_PATH = Path.home().joinpath(
-    ".claude", "skills", "explore-chimerax", "assets", "docs"
-)
+REAL_DOCS_PATH = Path.home().joinpath(".claude", "skills", "explore-chimerax", "assets", "docs")
 
 pytestmark = pytest.mark.skipif(
     not REAL_DOCS_PATH.exists(),
