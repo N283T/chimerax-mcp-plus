@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import base64
 import glob
 import os
 import platform
 import subprocess
-import tempfile
-import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -78,23 +76,28 @@ class ChimeraXClient:
         width: int = 1024,
         height: int = 768,
         format: str = "png",  # noqa: A002
-    ) -> str:
-        """Capture screenshot and return as base64."""
-        with tempfile.NamedTemporaryFile(suffix=f".{format}", delete=False) as f:
-            temp_path = f.name
+        output_path: Path | None = None,
+    ) -> Path:
+        """Capture screenshot and save to file.
 
-        try:
-            self.run_command(f"save {temp_path} width {width} height {height}")
-            # Wait for ChimeraX to finish writing the file
-            time.sleep(0.5)
+        Args:
+            width: Image width in pixels.
+            height: Image height in pixels.
+            format: Image format (png, jpg).
+            output_path: Where to save. If None, auto-generates under
+                ``~/.local/share/chimerax-mcp/screenshots/``.
 
-            with open(temp_path, "rb") as f:
-                image_data = f.read()
+        Returns:
+            Path to the saved image file.
+        """
+        if output_path is None:
+            screenshot_dir = Path.home().joinpath(".local", "share", "chimerax-mcp", "screenshots")
+            screenshot_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+            output_path = screenshot_dir.joinpath(f"screenshot_{timestamp}.{format}")
 
-            return base64.b64encode(image_data).decode("utf-8")
-        finally:
-            if os.path.exists(temp_path):
-                os.unlink(temp_path)
+        self.run_command(f"save {output_path} width {width} height {height}")
+        return output_path
 
     def close(self) -> None:
         """Close the HTTP client."""

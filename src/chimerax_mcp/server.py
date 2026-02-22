@@ -212,16 +212,22 @@ def chimerax_screenshot(
     width: int = 1024,
     height: int = 768,
     format: str = "png",  # noqa: A002
+    output_path: str | None = None,
 ) -> dict[str, Any]:
     """Capture a screenshot of the current ChimeraX view.
+
+    Saves the image to a file and returns the file path.
+    Use the Read tool on the returned path to view the image.
 
     Args:
         width: Image width in pixels (default: 1024, max: 8192)
         height: Image height in pixels (default: 768, max: 8192)
         format: Image format - png or jpg (default: png)
+        output_path: Where to save the image. If not provided, saves to
+            ``~/.local/share/chimerax-mcp/screenshots/`` with a timestamp filename.
 
     Returns:
-        Base64-encoded image data.
+        File path to the saved screenshot image.
     """
     # Input validation
     if width < MIN_IMAGE_DIMENSION or height < MIN_IMAGE_DIMENSION:
@@ -241,14 +247,18 @@ def chimerax_screenshot(
     if not client.is_running():
         return {"status": "error", "message": "ChimeraX is not running"}
 
+    resolved_path = Path(output_path) if output_path else None
+
     try:
-        image_b64 = client.screenshot(width=width, height=height, format=format.lower())
+        file_path = client.screenshot(
+            width=width, height=height, format=format.lower(), output_path=resolved_path
+        )
         return {
             "status": "ok",
             "format": format.lower(),
             "width": width,
             "height": height,
-            "image_base64": image_b64,
+            "file_path": str(file_path),
         }
     except httpx.HTTPError as e:
         return {"status": "error", "message": f"HTTP error: {e}"}
@@ -319,6 +329,9 @@ def docs_search(
     Use this tool to find relevant documentation before running ChimeraX
     commands. Supports semantic search over commands, tools, tutorials,
     and developer guides.
+
+    Note: The first call may be slow (~5-10s) while the embedding model
+    loads. Subsequent calls reuse the cached model and are much faster.
 
     Args:
         query: Natural language query (e.g., "how to color protein by chain")

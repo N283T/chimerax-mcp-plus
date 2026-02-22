@@ -75,6 +75,20 @@ class TestScreenshotValidation:
             result = chimerax_screenshot.fn(width=100, height=100, format=fmt)
             assert "format" not in result.get("message", "").lower() or result["status"] != "error"
 
+    def test_screenshot_not_running_returns_no_base64(self):
+        """Verify file-based response: no image_base64 field."""
+        result = chimerax_screenshot.fn(width=100, height=100, format="png")
+        assert result["status"] == "error"
+        assert "image_base64" not in result
+
+    def test_screenshot_accepts_output_path(self):
+        """output_path parameter is accepted (hits not-running before saving)."""
+        result = chimerax_screenshot.fn(
+            width=100, height=100, format="png", output_path="/tmp/test.png"
+        )
+        assert result["status"] == "error"
+        assert "not running" in result["message"].lower()
+
 
 class TestStatusTool:
     def test_status_not_running(self):

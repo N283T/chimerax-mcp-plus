@@ -7,8 +7,13 @@ from pathlib import Path
 from typing import Any
 
 import chromadb
+from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
 
 COLLECTION_NAME = "chimerax_docs"
+
+# Singleton embedding function — the underlying sentence-transformer model
+# (all-MiniLM-L6-v2) is loaded once on first use and reused for all queries.
+_embedding_fn = DefaultEmbeddingFunction()
 
 DEFAULT_DATA_DIR = Path.home().joinpath(".local", "share", "chimerax-mcp", "chroma")
 
@@ -22,6 +27,7 @@ class DocStore:
         self._client = chromadb.PersistentClient(path=str(data_dir))
         self._collection = self._client.get_or_create_collection(
             name=COLLECTION_NAME,
+            embedding_function=_embedding_fn,  # type: ignore[arg-type]  # chromadb generic variance
         )
 
     def add_documents(
@@ -98,4 +104,5 @@ class DocStore:
         self._client.delete_collection(COLLECTION_NAME)
         self._collection = self._client.get_or_create_collection(
             name=COLLECTION_NAME,
+            embedding_function=_embedding_fn,  # type: ignore[arg-type]  # chromadb generic variance
         )
