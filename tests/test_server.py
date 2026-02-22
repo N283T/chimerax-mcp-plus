@@ -1,5 +1,8 @@
 """Tests for MCP server tools."""
 
+from pathlib import Path
+from unittest.mock import patch
+
 from chimerax_mcp.chimerax import ChimeraXClient, detect_chimerax
 from chimerax_mcp.server import (
     MAX_IMAGE_DIMENSION,
@@ -88,6 +91,76 @@ class TestScreenshotValidation:
         )
         assert result["status"] == "error"
         assert "not running" in result["message"].lower()
+
+    def test_screenshot_whitespace_output_path(self):
+        """Whitespace-only output_path is rejected."""
+        result = chimerax_screenshot.fn(width=100, height=100, format="png", output_path="  ")
+        assert result["status"] == "error"
+        assert "empty" in result["message"].lower()
+
+
+class TestScreenshotHappyPath:
+    """Test screenshot success path with mocked ChimeraX client."""
+
+    def test_screenshot_returns_file_path(self, tmp_path: Path):
+        """Successful screenshot returns file_path, not image_base64."""
+        fake_file = tmp_path.joinpath("shot.png")
+
+        mock_client = ChimeraXClient(port=59998)
+
+        def fake_screenshot(**kwargs):  # noqa: ARG001
+            fake_file.write_bytes(b"PNG_DATA")
+            return fake_file
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.screenshot = fake_screenshot  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_screenshot.fn(width=100, height=100, format="png")
+
+        assert result["status"] == "ok"
+        assert result["file_path"] == str(fake_file)
+        assert "image_base64" not in result
+        assert result["width"] == 100
+        assert result["height"] == 100
+
+    def test_screenshot_with_explicit_output_path(self, tmp_path: Path):
+        """User-provided output_path is passed through and returned."""
+        user_path = tmp_path.joinpath("my_screenshot.png")
+
+        mock_client = ChimeraXClient(port=59998)
+
+        def fake_screenshot(**kwargs):
+            assert kwargs["output_path"] == user_path
+            user_path.write_bytes(b"PNG_DATA")
+            return user_path
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.screenshot = fake_screenshot  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_screenshot.fn(
+                width=100, height=100, format="png", output_path=str(user_path)
+            )
+
+        assert result["status"] == "ok"
+        assert result["file_path"] == str(user_path)
+
+    def test_screenshot_os_error_handled(self):
+        """OSError from client.screenshot is caught and returned."""
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+
+        def raise_os_error(**kwargs):  # noqa: ARG001
+            raise OSError("Permission denied")
+
+        mock_client.screenshot = raise_os_error  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_screenshot.fn(width=100, height=100, format="png")
+
+        assert result["status"] == "error"
+        assert "Permission denied" in result["message"]
 
 
 class TestStatusTool:

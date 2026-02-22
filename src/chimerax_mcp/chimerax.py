@@ -89,14 +89,24 @@ class ChimeraXClient:
 
         Returns:
             Path to the saved image file.
+
+        Raises:
+            OSError: If the parent directory cannot be created or the file
+                was not written after the save command.
         """
         if output_path is None:
             screenshot_dir = Path.home().joinpath(".local", "share", "chimerax-mcp", "screenshots")
             screenshot_dir.mkdir(parents=True, exist_ok=True)
-            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+            timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S_%f")
             output_path = screenshot_dir.joinpath(f"screenshot_{timestamp}.{format}")
+        else:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
 
         self.run_command(f"save {output_path} width {width} height {height}")
+
+        if not output_path.exists():
+            msg = f"ChimeraX save command completed but file not found: {output_path}"
+            raise OSError(msg)
         return output_path
 
     def close(self) -> None:

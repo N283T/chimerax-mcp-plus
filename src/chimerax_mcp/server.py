@@ -242,12 +242,17 @@ def chimerax_screenshot(
             "status": "error",
             "message": f"Format must be one of: {', '.join(VALID_IMAGE_FORMATS)}",
         }
+    if output_path is not None:
+        stripped = output_path.strip()
+        if not stripped:
+            return {"status": "error", "message": "output_path must not be empty or whitespace"}
+        resolved_path: Path | None = Path(stripped)
+    else:
+        resolved_path = None
 
     client = get_client()
     if not client.is_running():
         return {"status": "error", "message": "ChimeraX is not running"}
-
-    resolved_path = Path(output_path) if output_path else None
 
     try:
         file_path = client.screenshot(
@@ -330,8 +335,9 @@ def docs_search(
     commands. Supports semantic search over commands, tools, tutorials,
     and developer guides.
 
-    Note: The first call may be slow (~5-10s) while the embedding model
-    loads. Subsequent calls reuse the cached model and are much faster.
+    Note: The first call may be slow if the documentation index has not
+    been built yet, as it must parse and embed all HTML documentation.
+    Subsequent calls reuse the persisted index and are much faster.
 
     Args:
         query: Natural language query (e.g., "how to color protein by chain")
