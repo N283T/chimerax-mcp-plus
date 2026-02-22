@@ -1,0 +1,40 @@
+[project]
+name = "chimerax-mcp"
+version = "0.1.0"
+description = "MCP server for UCSF ChimeraX molecular visualization"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "nagaet" }]
+dependencies = [
+    "fastmcp>=2.0.0",
+    "httpx>=0.28.0",
+]
+
+[project.scripts]
+chimerax-mcp = "chimerax_mcp:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/chimerax_mcp"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ty.environment]
+python-version = "3.12"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-mock>=3.14.0",
+    "ruff>=0.9.0",
+    "ty>=0.0.1a0",
+]
