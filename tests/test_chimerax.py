@@ -1,7 +1,9 @@
 """Tests for ChimeraX detection and communication."""
 
 import platform
+import re
 from pathlib import Path
+from unittest.mock import patch
 
 import httpx
 import pytest
@@ -50,6 +52,64 @@ class TestChimeraXClient:
         client = ChimeraXClient(port=59998)
         with pytest.raises(httpx.ConnectError):
             client.run_command("version")
+
+
+class TestScreenshot:
+    """Test ChimeraXClient.screenshot() with mocked run_command."""
+
+    def test_default_path_generation(self, tmp_path: Path):
+        """Auto-generated path uses correct dir and timestamp pattern."""
+        client = ChimeraXClient(port=59998)
+        commands_called: list[str] = []
+
+        def fake_run_command(cmd: str):
+            commands_called.append(cmd)
+            # Simulate ChimeraX writing the file
+            parts = cmd.split()
+            file_path = Path(parts[1])
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path.write_bytes(b"PNG_DATA")
+            return {"status": "ok", "output": ""}
+
+        client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.chimerax.Path.home", return_value=tmp_path):
+            result = client.screenshot(width=200, height=150, format="png")
+
+        assert result.parent == tmp_path.joinpath(".local", "share", "chimerax-mcp", "screenshots")
+        assert re.match(r"screenshot_\d{8}_\d{6}_\d{6}\.png", result.name)
+        assert len(commands_called) == 1
+        assert "save" in commands_called[0]
+        assert "width 200" in commands_called[0]
+        assert "height 150" in commands_called[0]
+
+    def test_explicit_output_path(self, tmp_path: Path):
+        """User-provided output_path is used directly."""
+        client = ChimeraXClient(port=59998)
+        user_path = tmp_path.joinpath("subdir", "my_shot.png")
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            user_path.parent.mkdir(parents=True, exist_ok=True)
+            user_path.write_bytes(b"PNG_DATA")
+            return {"status": "ok", "output": ""}
+
+        client.run_command = fake_run_command  # type: ignore[assignment]
+
+        result = client.screenshot(output_path=user_path)
+        assert result == user_path
+        assert result.exists()
+
+    def test_raises_if_file_not_created(self, tmp_path: Path):
+        """OSError raised when save command succeeds but file is missing."""
+        client = ChimeraXClient(port=59998)
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            return {"status": "ok", "output": ""}
+
+        client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with pytest.raises(OSError, match="file not found"):
+            client.screenshot(output_path=tmp_path.joinpath("missing.png"))
 
 
 class TestDetectChimeraX:

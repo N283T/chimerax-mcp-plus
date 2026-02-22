@@ -7,8 +7,22 @@ from pathlib import Path
 from typing import Any
 
 import chromadb
+from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
 
 COLLECTION_NAME = "chimerax_docs"
+
+# Lazy singleton — ensures the same DefaultEmbeddingFunction (ONNX all-MiniLM-L6-v2)
+# is shared across DocStore instances. Deferred to first use so that import failures
+# don't prevent the rest of the MCP server from starting.
+_embedding_fn: DefaultEmbeddingFunction | None = None
+
+
+def _get_embedding_fn() -> DefaultEmbeddingFunction:
+    global _embedding_fn
+    if _embedding_fn is None:
+        _embedding_fn = DefaultEmbeddingFunction()
+    return _embedding_fn
+
 
 DEFAULT_DATA_DIR = Path.home().joinpath(".local", "share", "chimerax-mcp", "chroma")
 
@@ -22,6 +36,7 @@ class DocStore:
         self._client = chromadb.PersistentClient(path=str(data_dir))
         self._collection = self._client.get_or_create_collection(
             name=COLLECTION_NAME,
+            embedding_function=_get_embedding_fn(),  # type: ignore[arg-type]  # chromadb generic variance
         )
 
     def add_documents(
@@ -98,4 +113,5 @@ class DocStore:
         self._client.delete_collection(COLLECTION_NAME)
         self._collection = self._client.get_or_create_collection(
             name=COLLECTION_NAME,
+            embedding_function=_get_embedding_fn(),  # type: ignore[arg-type]  # chromadb generic variance
         )
