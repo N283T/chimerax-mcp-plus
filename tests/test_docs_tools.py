@@ -37,7 +37,7 @@ class TestDocsSearchTool:
         mock_search.search.return_value = []
         mock_get.return_value = mock_search
 
-        result = docs_search.fn(query="color", category="tutorials")
+        docs_search.fn(query="color", category="tutorials")
         mock_search.search.assert_called_once_with(
             query="color", category="tutorials", max_results=5
         )
@@ -50,7 +50,7 @@ class TestDocsSearchTool:
         mock_search.search.return_value = []
         mock_get.return_value = mock_search
 
-        result = docs_search.fn(query="test")
+        docs_search.fn(query="test")
         mock_search.ensure_index.assert_called_once()
 
 

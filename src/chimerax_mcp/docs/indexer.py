@@ -8,14 +8,11 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 
-
 MIN_CHUNK_SIZE = 50
 MAX_CHUNK_SIZE = 1500
 OVERLAP_SIZE = 100
 
-DEFAULT_DOCS_PATH = Path.home().joinpath(
-    ".claude", "skills", "explore-chimerax", "assets", "docs"
-)
+DEFAULT_DOCS_PATH = Path.home().joinpath(".claude", "skills", "explore-chimerax", "assets", "docs")
 
 HEADING_TAGS = {"h1", "h2", "h3", "h4", "h5"}
 

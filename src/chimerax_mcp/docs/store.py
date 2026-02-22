@@ -6,7 +6,6 @@ from pathlib import Path
 
 import chromadb
 
-
 COLLECTION_NAME = "chimerax_docs"
 
 DEFAULT_DATA_DIR = Path.home().joinpath(".local", "share", "chimerax-mcp", "chroma")

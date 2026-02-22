@@ -9,6 +9,7 @@ MCP server for controlling UCSF ChimeraX molecular visualization.
 - **Screenshot Capture**: Take screenshots of the current view
 - **Session Management**: Save and load ChimeraX sessions
 - **echidna Integration**: Build, install, and test ChimeraX bundles
+- **Documentation Search**: Semantic search over ChimeraX documentation using ChromaDB
 
 ## Installation
 
@@ -70,6 +71,13 @@ Or if installed globally:
 | `chimerax_session_save` | Save session |
 | `chimerax_session_open` | Load session |
 
+### Documentation Search
+
+| Tool | Description |
+|------|-------------|
+| `docs_search` | Semantic search over ChimeraX documentation |
+| `docs_lookup` | Look up documentation for a specific command |
+
 ### Bundle Development (echidna)
 
 | Tool | Description |
@@ -96,6 +104,16 @@ User: "Show me the current view"
 Claude uses chimerax_screenshot() → displays image
 ```
 
+### Documentation-Assisted Workflow
+
+```
+User: "Color the protein by chain"
+
+Claude uses docs_search("how to color protein by chain")
+  → finds color command docs
+  → uses chimerax_run("color bychain")
+```
+
 ### Bundle Development
 
 ```
@@ -103,6 +121,23 @@ User: "Test my ChimeraX bundle in ./my-bundle"
 
 Claude uses bundle_test(bundle_path="./my-bundle", smoke=True)
 ```
+
+## Building the Documentation Index
+
+The documentation search index is built automatically on first use. To build it manually:
+
+```bash
+chimerax-mcp index-docs
+```
+
+Options:
+
+```bash
+chimerax-mcp index-docs --docs-path /path/to/chimerax/docs
+chimerax-mcp index-docs --data-dir /path/to/store/index
+```
+
+The index is stored at `~/.local/share/chimerax-mcp/chroma/` by default.
 
 ## Requirements
 
