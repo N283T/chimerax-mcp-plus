@@ -25,9 +25,23 @@ def _index_docs(args: argparse.Namespace) -> None:
         print(f"Error: docs path does not exist: {docs_path}", file=sys.stderr)
         sys.exit(1)
 
-    search = DocSearch(docs_path=docs_path, data_dir=data_dir)
+    try:
+        search = DocSearch(docs_path=docs_path, data_dir=data_dir)
+    except Exception as e:
+        print(f"Error: failed to initialize search: {e}", file=sys.stderr)
+        sys.exit(1)
+
     print("Building documentation index...")
-    stats = search.build_index()
+    try:
+        stats = search.build_index()
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if stats["files_processed"] == 0:
+        print("Warning: no HTML files found. Check the docs path.", file=sys.stderr)
+        sys.exit(1)
+
     print(f"Done: {stats['files_processed']} files, {stats['chunks_created']} chunks indexed.")
 
 

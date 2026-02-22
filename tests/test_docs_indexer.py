@@ -2,7 +2,14 @@
 
 from pathlib import Path
 
-from chimerax_mcp.docs.indexer import DocChunk, categorize_file, chunk_html, parse_html
+from chimerax_mcp.docs.indexer import (
+    DocChunk,
+    _extract_command_name,
+    _split_large_text,
+    categorize_file,
+    chunk_html,
+    parse_html,
+)
 
 SAMPLE_COMMAND_HTML = """\
 <html>
@@ -104,3 +111,70 @@ class TestChunkHtml:
         for chunk in chunks:
             assert "<" not in chunk.content or "&lt;" in chunk.content
             assert len(chunk.content) > 0
+
+    def test_fallback_for_no_headings(self):
+        html = """\
+<html><head><title>Simple Page</title></head>
+<body>
+<p>This page has no heading tags at all but has enough content to be indexed.
+It contains a paragraph with sufficient text to pass the minimum chunk size threshold.</p>
+</body></html>
+"""
+        chunks = chunk_html(html, source_file="user/simple.html")
+        assert len(chunks) >= 1
+        assert chunks[0].section == "Simple Page"
+
+
+class TestSplitLargeText:
+    def test_small_text_unchanged(self):
+        text = "short paragraph"
+        result = _split_large_text(text, max_size=100)
+        assert result == [text]
+
+    def test_splits_at_paragraph_boundary(self):
+        para_a = "A" * 60
+        para_b = "B" * 60
+        para_c = "C" * 60
+        text = f"{para_a}\n{para_b}\n{para_c}"
+        result = _split_large_text(text, max_size=130)
+        assert len(result) == 2
+        assert para_a in result[0]
+        assert para_b in result[0]
+        assert para_c in result[1]
+
+    def test_no_paragraph_duplication(self):
+        text = "para_A\npara_B\npara_C\npara_D\npara_E\npara_F"
+        result = _split_large_text(text, max_size=20)
+        for chunk in result:
+            lines = chunk.split("\n")
+            # No line should appear more than once in a chunk
+            assert len(lines) == len(set(lines)), f"Duplicate found in chunk: {chunk!r}"
+
+    def test_all_paragraphs_present(self):
+        paragraphs = ["para_A", "para_B", "para_C", "para_D"]
+        text = "\n".join(paragraphs)
+        result = _split_large_text(text, max_size=20)
+        all_content = "\n".join(result)
+        for p in paragraphs:
+            assert p in all_content
+
+    def test_single_huge_paragraph(self):
+        text = "A" * 200
+        result = _split_large_text(text, max_size=100)
+        # Cannot split at paragraph boundary, returns as single chunk
+        assert len(result) == 1
+        assert result[0] == text
+
+
+class TestExtractCommandName:
+    def test_standard_command_title(self):
+        assert _extract_command_name("Command: color, rainbow", "commands") == "color"
+
+    def test_non_command_category(self):
+        assert _extract_command_name("Command: color", "tools") == ""
+
+    def test_no_match_in_title(self):
+        assert _extract_command_name("Some Other Title", "commands") == ""
+
+    def test_single_command(self):
+        assert _extract_command_name("Command: open", "commands") == "open"

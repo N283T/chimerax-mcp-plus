@@ -329,24 +329,32 @@ def docs_search(
     Returns:
         Matching documentation chunks with metadata.
     """
-    search = get_doc_search()
-    if not search.is_indexed():
-        search.ensure_index()
+    if not query.strip():
+        return {"status": "error", "message": "query must not be empty"}
+    if max_results < 1:
+        return {"status": "error", "message": "max_results must be at least 1"}
 
-    results = search.search(query=query, category=category, max_results=max_results)
-    return {
-        "status": "ok",
-        "results": [
-            {
-                "title": r["metadata"]["title"],
-                "section": r["metadata"]["section"],
-                "content": r["document"],
-                "category": r["metadata"]["category"],
-                "source_file": r["metadata"]["source_file"],
-            }
-            for r in results
-        ],
-    }
+    try:
+        search = get_doc_search()
+        if not search.is_indexed():
+            search.ensure_index()
+
+        results = search.search(query=query, category=category, max_results=max_results)
+        return {
+            "status": "ok",
+            "results": [
+                {
+                    "title": r["metadata"]["title"],
+                    "section": r["metadata"]["section"],
+                    "content": r["document"],
+                    "category": r["metadata"]["category"],
+                    "source_file": r["metadata"]["source_file"],
+                }
+                for r in results
+            ],
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Documentation search failed: {e}"}
 
 
 @mcp.tool()
@@ -363,24 +371,30 @@ def docs_lookup(
     Returns:
         All documentation chunks for that command.
     """
-    search = get_doc_search()
-    if not search.is_indexed():
-        search.ensure_index()
+    if not command_name.strip():
+        return {"status": "error", "message": "command_name must not be empty"}
 
-    results = search.lookup(command_name)
-    return {
-        "status": "ok",
-        "results": [
-            {
-                "title": r["metadata"]["title"],
-                "section": r["metadata"]["section"],
-                "content": r["document"],
-                "category": r["metadata"]["category"],
-                "source_file": r["metadata"]["source_file"],
-            }
-            for r in results
-        ],
-    }
+    try:
+        search = get_doc_search()
+        if not search.is_indexed():
+            search.ensure_index()
+
+        results = search.lookup(command_name)
+        return {
+            "status": "ok",
+            "results": [
+                {
+                    "title": r["metadata"]["title"],
+                    "section": r["metadata"]["section"],
+                    "content": r["document"],
+                    "category": r["metadata"]["category"],
+                    "source_file": r["metadata"]["source_file"],
+                }
+                for r in results
+            ],
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Documentation lookup failed: {e}"}
 
 
 @mcp.tool()

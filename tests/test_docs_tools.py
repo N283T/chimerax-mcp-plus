@@ -88,3 +88,49 @@ class TestDocsLookupTool:
         result = docs_lookup.fn(command_name="nonexistent")
         assert result["status"] == "ok"
         assert result["results"] == []
+
+    def test_lookup_empty_command_name(self):
+        result = docs_lookup.fn(command_name="")
+        assert result["status"] == "error"
+        assert "must not be empty" in result["message"]
+
+    def test_lookup_whitespace_command_name(self):
+        result = docs_lookup.fn(command_name="   ")
+        assert result["status"] == "error"
+        assert "must not be empty" in result["message"]
+
+
+class TestDocsSearchValidation:
+    def test_search_empty_query(self):
+        result = docs_search.fn(query="")
+        assert result["status"] == "error"
+        assert "must not be empty" in result["message"]
+
+    def test_search_whitespace_query(self):
+        result = docs_search.fn(query="   ")
+        assert result["status"] == "error"
+        assert "must not be empty" in result["message"]
+
+    def test_search_invalid_max_results(self):
+        result = docs_search.fn(query="test", max_results=0)
+        assert result["status"] == "error"
+        assert "max_results" in result["message"]
+
+    def test_search_negative_max_results(self):
+        result = docs_search.fn(query="test", max_results=-1)
+        assert result["status"] == "error"
+        assert "max_results" in result["message"]
+
+    @patch("chimerax_mcp.server.get_doc_search")
+    def test_search_handles_exception(self, mock_get):
+        mock_get.side_effect = RuntimeError("ChromaDB error")
+        result = docs_search.fn(query="test")
+        assert result["status"] == "error"
+        assert "search failed" in result["message"]
+
+    @patch("chimerax_mcp.server.get_doc_search")
+    def test_lookup_handles_exception(self, mock_get):
+        mock_get.side_effect = RuntimeError("ChromaDB error")
+        result = docs_lookup.fn(command_name="color")
+        assert result["status"] == "error"
+        assert "lookup failed" in result["message"]

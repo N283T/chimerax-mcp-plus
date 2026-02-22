@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
 import chromadb
 
@@ -26,7 +28,7 @@ class DocStore:
         self,
         ids: list[str],
         documents: list[str],
-        metadatas: list[dict[str, str]],
+        metadatas: list[Mapping[str, Any]],
     ) -> None:
         """Add document chunks to the store."""
         self._collection.add(ids=ids, documents=documents, metadatas=metadatas)
@@ -36,7 +38,7 @@ class DocStore:
         query: str,
         category: str | None = None,
         max_results: int = 5,
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """Semantic search for documents matching the query."""
         if self._collection.count() == 0:
             return []
@@ -50,16 +52,21 @@ class DocStore:
             where=where,
         )
 
+        docs = results["documents"]
+        metas = results["metadatas"]
+        if not docs or not metas:
+            return []
+
         return [
             {
                 "id": results["ids"][0][i],
-                "document": results["documents"][0][i],
-                "metadata": results["metadatas"][0][i],
+                "document": docs[0][i],
+                "metadata": metas[0][i],
             }
             for i in range(len(results["ids"][0]))
         ]
 
-    def lookup_command(self, command_name: str) -> list[dict]:
+    def lookup_command(self, command_name: str) -> list[dict[str, Any]]:
         """Look up all chunks for a specific command name."""
         if self._collection.count() == 0:
             return []
@@ -68,11 +75,16 @@ class DocStore:
             where={"command_name": command_name},
         )
 
+        docs = results["documents"]
+        metas = results["metadatas"]
+        if not docs or not metas:
+            return []
+
         return [
             {
                 "id": results["ids"][i],
-                "document": results["documents"][i],
-                "metadata": results["metadatas"][i],
+                "document": docs[i],
+                "metadata": metas[i],
             }
             for i in range(len(results["ids"]))
         ]

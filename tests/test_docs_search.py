@@ -2,6 +2,8 @@
 
 from pathlib import Path
 
+import pytest
+
 from chimerax_mcp.docs.search import DocSearch
 
 
@@ -96,3 +98,15 @@ class TestDocSearch:
         search.build_index()
         search.ensure_index()  # should not raise
         assert search.is_indexed() is True
+
+    def test_build_index_nonexistent_docs_path(self, tmp_path: Path):
+        data_dir = tmp_path.joinpath("chroma")
+        search = DocSearch(docs_path=tmp_path.joinpath("no-such-dir"), data_dir=data_dir)
+        with pytest.raises(FileNotFoundError):
+            search.build_index()
+
+    def test_ensure_index_wraps_error(self, tmp_path: Path):
+        data_dir = tmp_path.joinpath("chroma")
+        search = DocSearch(docs_path=tmp_path.joinpath("no-such-dir"), data_dir=data_dir)
+        with pytest.raises(RuntimeError, match="Failed to build"):
+            search.ensure_index()

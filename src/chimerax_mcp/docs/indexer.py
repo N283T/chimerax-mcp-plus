@@ -111,11 +111,11 @@ def _split_large_text(text: str, max_size: int = MAX_CHUNK_SIZE) -> list[str]:
         para_len = len(para) + 1
         if current_len + para_len > max_size and current:
             chunks.append("\n".join(current))
-            overlap_text = para
-            current = [overlap_text] if len(overlap_text) <= OVERLAP_SIZE else []
-            current_len = len(overlap_text) + 1 if current else 0
-        current.append(para)
-        current_len += para_len
+            current = [para]
+            current_len = para_len
+        else:
+            current.append(para)
+            current_len += para_len
 
     if current:
         chunks.append("\n".join(current))
