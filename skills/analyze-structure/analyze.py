@@ -103,19 +103,20 @@ def _take_screenshot(
 def _build_tool_screenshot_script(
     tool_name: str,
     output_path: str,
-    width: int | None = None,
-    height: int | None = None,
     padding: int = 10,
 ) -> str:
-    """Build a Python script for ChimeraX to capture a tool window."""
+    """Build a Python script for ChimeraX to capture a tool window.
+
+    Captures the tool's ui_area, then auto-crops to the non-white content
+    region and adds uniform padding.
+    """
     lines = [
-        "from Qt.QtGui import QPixmap, QPainter, QColor",
+        "from Qt.QtCore import Qt",
+        "from Qt.QtGui import QPixmap, QPainter, QColor, QImage",
         "from Qt.QtWidgets import QApplication",
         "",
         f"tool_name = {tool_name!r}",
         f"output_path = {output_path!r}",
-        f"resize_w = {width!r}",
-        f"resize_h = {height!r}",
         f"padding = {padding!r}",
         "",
         "target = None",
@@ -129,28 +130,38 @@ def _build_tool_screenshot_script(
         "else:",
         "    try:",
         "        ua = target.tool_window.ui_area",
-        "        original_size = ua.size()",
-        "        if resize_w is not None and resize_h is not None:",
-        "            ua.resize(resize_w, resize_h)",
-        "            QApplication.processEvents()",
-        "        elif resize_w is not None:",
-        "            ua.resize(resize_w, original_size.height())",
-        "            QApplication.processEvents()",
-        "        elif resize_h is not None:",
-        "            ua.resize(original_size.width(), resize_h)",
-        "            QApplication.processEvents()",
         "        pixmap = ua.grab()",
-        "        if resize_w is not None or resize_h is not None:",
-        "            ua.resize(original_size)",
-        "            QApplication.processEvents()",
+        "        img = pixmap.toImage()",
+        "        w, h = img.width(), img.height()",
+        # Detect background from bottom-right corner pixel
+        "        bg = img.pixel(w - 1, h - 1)",
+        "        min_x, min_y, max_x, max_y = w, h, 0, 0",
+        "        for y in range(h):",
+        "            for x in range(w):",
+        "                if img.pixel(x, y) != bg:",
+        "                    min_x = min(min_x, x)",
+        "                    min_y = min(min_y, y)",
+        "                    max_x = max(max_x, x)",
+        "                    max_y = max(max_y, y)",
+        "        if max_x >= min_x and max_y >= min_y:",
+        "            cropped = pixmap.copy(",
+        "                min_x, min_y,",
+        "                max_x - min_x + 1,",
+        "                max_y - min_y + 1,",
+        "            )",
+        "        else:",
+        "            cropped = pixmap",
+        # Add padding
         "        if padding > 0:",
-        "            padded = QPixmap(pixmap.width() + 2 * padding, pixmap.height() + 2 * padding)",
+        "            cw = cropped.width() + 2 * padding",
+        "            ch = cropped.height() + 2 * padding",
+        "            padded = QPixmap(cw, ch)",
         "            padded.fill(QColor(255, 255, 255))",
         "            painter = QPainter(padded)",
-        "            painter.drawPixmap(padding, padding, pixmap)",
+        "            painter.drawPixmap(padding, padding, cropped)",
         "            painter.end()",
-        "            pixmap = padded",
-        "        if not pixmap.save(output_path):",
+        "            cropped = padded",
+        "        if not cropped.save(output_path):",
         "            print('ERROR: Failed to save to ' + repr(output_path))",
         "        else:",
         "            print('OK: ' + output_path)",
@@ -164,16 +175,19 @@ def _take_tool_screenshot(
     tool_name: str,
     output_path: Path,
     base_url: str,
-    width: int | None = None,
-    height: int | None = None,
     padding: int = 10,
 ) -> bool:
     """Capture a ChimeraX tool window screenshot via runscript.
 
+    Temporarily shrinks the window so the tool panel is compact,
+    auto-crops whitespace, then restores the original window size.
     Returns True on success, False on failure.
     """
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    script = _build_tool_screenshot_script(tool_name, str(output_path), width, height, padding)
+    # Shrink window so tool panel is compact
+    cur_size = _try_command("windowsize", base_url) or ""
+    _try_command("windowsize 400 400", base_url)
+    script = _build_tool_screenshot_script(tool_name, str(output_path), padding)
     fd, script_path = tempfile.mkstemp(suffix=".py", prefix="cx_tool_grab_")
     os.close(fd)
     try:
@@ -182,6 +196,10 @@ def _take_tool_screenshot(
         return bool(out and "OK:" in out)
     finally:
         Path(script_path).unlink(missing_ok=True)
+        # Restore original window size
+        m = re.search(r"window size (\d+) (\d+)", cur_size)
+        if m:
+            _try_command(f"windowsize {m.group(1)} {m.group(2)}", base_url)
 
 
 # ---------------------------------------------------------------------------
