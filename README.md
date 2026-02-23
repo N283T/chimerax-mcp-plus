@@ -115,12 +115,13 @@ Claude uses bundle_test(bundle_path="./my-bundle", smoke=True)
 
 ## Claude Code Skills
 
-This repository includes Claude Code skills for ChimeraX documentation reference and bundle development.
+This repository includes Claude Code skills for ChimeraX structural analysis, documentation reference, and bundle development.
 
 ### Available Skills
 
 | Skill | Description |
 |-------|-------------|
+| `/analyze-structure` | Comprehensive structural analysis with report generation |
 | `/explore-chimerax` | Router skill - documentation reference and sub-skill routing |
 | `/explore-chimerax-commands` | Command exploration and MCP operation reference |
 | `/reference-chimerax-dev` | Bundle/extension development reference |
