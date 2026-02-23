@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "chimerax": {
-      "command": "uv",
-      "args": ["run", "chimerax-mcp"],
-      "cwd": "/Users/nagaet/chimerax-mcp-plus"
-    }
-  }
-}
