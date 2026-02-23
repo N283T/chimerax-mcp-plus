@@ -93,7 +93,10 @@ def _take_screenshot(
         _try_command(f"view {fit_target} pad {pad}", base_url)
     elif auto_fit:
         _try_command(f"view pad {pad}", base_url)
-    _run_command(f"save {output_path} width {width} height {height}", base_url)
+    _run_command(
+        f"save {output_path} width {width} height {height} supersample 3",
+        base_url,
+    )
     return output_path
 
 
