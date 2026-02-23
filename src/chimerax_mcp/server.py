@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import atexit
+import contextlib
 import shutil
 import subprocess
 import time
@@ -23,6 +24,16 @@ _process: subprocess.Popen[bytes] | None = None
 VALID_IMAGE_FORMATS = {"png", "jpg", "jpeg"}
 MAX_IMAGE_DIMENSION = 8192
 MIN_IMAGE_DIMENSION = 1
+VALID_AXES = {"x", "y", "z"}
+_RESET_COMMANDS = [
+    "hide pseudobonds",
+    "hide atoms",
+    "hide surface",
+    "cartoon",
+    "color byhetero",
+    "lighting soft",
+    "view",
+]
 
 
 def _cleanup() -> None:
@@ -196,11 +207,78 @@ def chimerax_models() -> dict[str, Any]:
 
 
 @mcp.tool()
+def chimerax_view(target: str | None = None) -> dict[str, Any]:
+    """Adjust the view to fit models or a specific target in the window.
+
+    Args:
+        target: Optional atom specification to focus on (e.g., "#1", ":MK1").
+            If not provided, fits all models in the view.
+
+    Returns:
+        Result of the view command.
+    """
+    command = f"view {target}" if target else "view"
+    return _run_command(command)
+
+
+@mcp.tool()
+def chimerax_turn(axis: str = "y", angle: float = 90, frames: int = 1) -> dict[str, Any]:
+    """Rotate the view around an axis.
+
+    Args:
+        axis: Axis to rotate around - "x", "y", or "z" (default: "y")
+        angle: Rotation angle in degrees (default: 90)
+        frames: Number of animation frames (default: 1, instant)
+
+    Returns:
+        Result of the turn command.
+    """
+    if axis.lower() not in VALID_AXES:
+        return {
+            "status": "error",
+            "message": f"Invalid axis '{axis}'. Must be one of: {', '.join(sorted(VALID_AXES))}",
+        }
+    command = f"turn {axis.lower()} {angle}"
+    if frames > 1:
+        command = f"{command} {frames}"
+    return _run_command(command)
+
+
+@mcp.tool()
+def chimerax_reset() -> dict[str, Any]:
+    """Reset the display to a clean default state.
+
+    Hides pseudobonds, atoms, and surfaces, then shows cartoon representation
+    with heteroatom coloring, soft lighting, and fits the view.
+
+    Returns:
+        Summary of reset commands executed.
+    """
+    client = get_client()
+    if not client.is_running():
+        return {"status": "error", "message": "ChimeraX is not running"}
+
+    errors: list[str] = []
+    for cmd in _RESET_COMMANDS:
+        try:
+            result = client.run_command(cmd)
+            if result.get("status") == "error":
+                errors.append(f"{cmd}: {result.get('message', 'unknown error')}")
+        except httpx.HTTPError as e:
+            errors.append(f"{cmd}: {e}")
+
+    if errors:
+        return {"status": "partial", "message": "Some commands failed", "errors": errors}
+    return {"status": "ok", "message": f"Reset complete ({len(_RESET_COMMANDS)} commands executed)"}
+
+
+@mcp.tool()
 def chimerax_screenshot(
     width: int = 1024,
     height: int = 768,
     format: str = "png",  # noqa: A002
     output_path: str | None = None,
+    auto_fit: bool = False,
 ) -> dict[str, Any]:
     """Capture a screenshot of the current ChimeraX view.
 
@@ -213,6 +291,7 @@ def chimerax_screenshot(
         format: Image format - png or jpg (default: png)
         output_path: Where to save the image. If not provided, saves to
             ``~/.local/share/chimerax-mcp/screenshots/`` with a timestamp filename.
+        auto_fit: If True, run ``view`` to fit all models before capture (default: False)
 
     Returns:
         File path to the saved screenshot image.
@@ -241,6 +320,10 @@ def chimerax_screenshot(
     client = get_client()
     if not client.is_running():
         return {"status": "error", "message": "ChimeraX is not running"}
+
+    if auto_fit:
+        with contextlib.suppress(httpx.HTTPError):
+            client.run_command("view")
 
     try:
         file_path = client.screenshot(

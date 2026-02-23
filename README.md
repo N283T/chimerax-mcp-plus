@@ -59,7 +59,15 @@ Or if installed globally:
 | `chimerax_status` | Check if ChimeraX is running |
 | `chimerax_run` | Execute any ChimeraX command |
 | `chimerax_models` | List open models |
-| `chimerax_screenshot` | Capture screenshot (returns base64) |
+| `chimerax_screenshot` | Capture screenshot (supports auto-fit) |
+
+### View Management
+
+| Tool | Description |
+|------|-------------|
+| `chimerax_view` | Fit all models or focus on a target |
+| `chimerax_turn` | Rotate the view around an axis |
+| `chimerax_reset` | Reset display to clean default state |
 
 ### Structure Management
 
