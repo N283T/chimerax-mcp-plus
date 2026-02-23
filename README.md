@@ -75,6 +75,22 @@ Add to your MCP client configuration (e.g. `~/.claude/.mcp.json`):
 | `bundle_run` | Build, install, and launch ChimeraX |
 | `bundle_test` | Run tests for a bundle |
 
+## Claude Code Skills
+
+This repository includes Claude Code skills for ChimeraX documentation reference and bundle development.
+
+| Skill | Description |
+|-------|-------------|
+| `/explore-chimerax` | Router skill for ChimeraX documentation and sub-skill routing |
+| `/explore-chimerax-commands` | Command exploration and MCP operation reference |
+| `/reference-chimerax-dev` | Bundle/extension development reference |
+
+To use these skills, symlink them into your Claude Code skills directory:
+
+```bash
+ln -s /path/to/chimerax-mcp-plus/skills/* ~/.claude/skills/
+```
+
 ## How It Works
 
 This MCP server communicates with ChimeraX via its REST API:
