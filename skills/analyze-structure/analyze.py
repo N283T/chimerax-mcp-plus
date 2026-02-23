@@ -13,8 +13,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import quote
@@ -80,6 +82,90 @@ def _take_screenshot(
         _try_command("view", base_url)
     _run_command(f"save {output_path} width {width} height {height}", base_url)
     return output_path
+
+
+def _build_tool_screenshot_script(
+    tool_name: str,
+    output_path: str,
+    width: int | None = None,
+    height: int | None = None,
+    padding: int = 10,
+) -> str:
+    """Build a Python script for ChimeraX to capture a tool window."""
+    lines = [
+        "from Qt.QtGui import QPixmap, QPainter, QColor",
+        "from Qt.QtWidgets import QApplication",
+        "",
+        f"tool_name = {tool_name!r}",
+        f"output_path = {output_path!r}",
+        f"resize_w = {width!r}",
+        f"resize_h = {height!r}",
+        f"padding = {padding!r}",
+        "",
+        "target = None",
+        "for t in session.tools.list():",
+        "    if t.tool_name == tool_name:",
+        "        target = t",
+        "        break",
+        "",
+        "if target is None:",
+        "    print('ERROR: Tool ' + repr(tool_name) + ' not found')",
+        "else:",
+        "    try:",
+        "        ua = target.tool_window.ui_area",
+        "        original_size = ua.size()",
+        "        if resize_w is not None and resize_h is not None:",
+        "            ua.resize(resize_w, resize_h)",
+        "            QApplication.processEvents()",
+        "        elif resize_w is not None:",
+        "            ua.resize(resize_w, original_size.height())",
+        "            QApplication.processEvents()",
+        "        elif resize_h is not None:",
+        "            ua.resize(original_size.width(), resize_h)",
+        "            QApplication.processEvents()",
+        "        pixmap = ua.grab()",
+        "        if resize_w is not None or resize_h is not None:",
+        "            ua.resize(original_size)",
+        "            QApplication.processEvents()",
+        "        if padding > 0:",
+        "            padded = QPixmap(pixmap.width() + 2 * padding, pixmap.height() + 2 * padding)",
+        "            padded.fill(QColor(255, 255, 255))",
+        "            painter = QPainter(padded)",
+        "            painter.drawPixmap(padding, padding, pixmap)",
+        "            painter.end()",
+        "            pixmap = padded",
+        "        if not pixmap.save(output_path):",
+        "            print('ERROR: Failed to save to ' + repr(output_path))",
+        "        else:",
+        "            print('OK: ' + output_path)",
+        "    except Exception as exc:",
+        "        print('ERROR: ' + str(exc))",
+    ]
+    return "\n".join(lines)
+
+
+def _take_tool_screenshot(
+    tool_name: str,
+    output_path: Path,
+    base_url: str,
+    width: int | None = None,
+    height: int | None = None,
+    padding: int = 10,
+) -> bool:
+    """Capture a ChimeraX tool window screenshot via runscript.
+
+    Returns True on success, False on failure.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    script = _build_tool_screenshot_script(tool_name, str(output_path), width, height, padding)
+    fd, script_path = tempfile.mkstemp(suffix=".py", prefix="cx_tool_grab_")
+    os.close(fd)
+    try:
+        Path(script_path).write_text(script)
+        out = _try_command(f"runscript {script_path}", base_url)
+        return bool(out and "OK:" in out)
+    finally:
+        Path(script_path).unlink(missing_ok=True)
 
 
 # ---------------------------------------------------------------------------
@@ -484,10 +570,12 @@ def analyze_surface(
 
 def analyze_dimer_interface(
     chains: list[dict[str, str]],
+    images_dir: Path,
     img_num: int,
     base_url: str,
 ) -> tuple[dict, int]:
     """Compute buried surface area between first two chains."""
+    screenshots: list[str] = []
     data: dict = {}
 
     type_chains: dict[str, list[str]] = {}
@@ -520,7 +608,14 @@ def analyze_dimer_interface(
         data["buried_surface_area"] = bsa
         data["raw_output"] = out.strip()
 
-    return {"status": "ok", "screenshots": [], "data": data}, img_num
+    # Capture "Chain Contacts" tool panel screenshot
+    fname = f"{img_num:02d}_chain_contacts.png"
+    ok = _take_tool_screenshot("Chain Contacts", images_dir.joinpath(fname), base_url)
+    if ok:
+        screenshots.append(f"images/{fname}")
+        img_num += 1
+
+    return {"status": "ok", "screenshots": screenshots, "data": data}, img_num
 
 
 def analyze_bfactors(
@@ -704,7 +799,9 @@ def run_analysis(
     if detection["is_multimer"]:
         print("Section: Dimer Interface...")
         try:
-            result, img_num = analyze_dimer_interface(detection["chains"], img_num, base_url)
+            result, img_num = analyze_dimer_interface(
+                detection["chains"], images_dir, img_num, base_url
+            )
             sections["dimer_interface"] = result
         except Exception as e:
             errors.append({"section": "dimer_interface", "command": "", "error": str(e)})

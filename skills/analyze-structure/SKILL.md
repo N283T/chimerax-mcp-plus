@@ -107,6 +107,7 @@ Use the JSON fields to populate this template. **Number sections sequentially** 
 |----------|-------|
 | Buried Surface Area | <data.buried_surface_area> A^2 |
 <Interpretation>
+![Chain Contacts](<screenshot path — tool panel capture if available>)
 
 ## N. Temperature Factors (B-factors)  (always — sections.bfactors)
 | Property | Value |
