@@ -75,11 +75,24 @@ def _take_screenshot(
     height: int = DEFAULT_HEIGHT,
     *,
     auto_fit: bool = False,
+    fit_target: str | None = None,
+    pad: float = 0.15,
 ) -> Path:
-    """Capture a screenshot and save to *output_path*."""
+    """Capture a screenshot and save to *output_path*.
+
+    Sets the ChimeraX window size to match the requested image dimensions
+    before saving so that the aspect ratios are consistent and nothing
+    gets cropped.
+
+    *fit_target*: atom spec to focus on (e.g. "ligand"). If None and
+    auto_fit is True, fits all models.
+    *pad*: fraction of padding around the target (default 0.15).
+    """
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    if auto_fit:
-        _try_command("view", base_url)
+    if fit_target:
+        _try_command(f"view {fit_target} pad {pad}", base_url)
+    elif auto_fit:
+        _try_command(f"view pad {pad}", base_url)
     _run_command(f"save {output_path} width {width} height {height}", base_url)
     return output_path
 
@@ -676,6 +689,9 @@ def run_analysis(
     """Run full structural analysis and return JSON-serializable result."""
     images_dir = output_dir.joinpath("images")
     images_dir.mkdir(parents=True, exist_ok=True)
+
+    # Match window aspect ratio to output image to prevent cropping
+    _try_command(f"windowsize {width} {height}", base_url)
 
     errors: list[dict[str, str]] = []
     sections: dict[str, dict] = {}
