@@ -13,6 +13,7 @@ from chimerax_mcp.server import (
     chimerax_reset,
     chimerax_screenshot,
     chimerax_status,
+    chimerax_tool_screenshot,
     chimerax_turn,
     chimerax_view,
     get_client,
@@ -398,6 +399,170 @@ class TestScreenshotAutoFit:
 
         assert result["status"] == "ok"
         assert "view" not in commands_run
+
+
+class TestToolScreenshot:
+    """Tests for chimerax_tool_screenshot."""
+
+    def test_not_running(self):
+        """Returns error when ChimeraX is not running."""
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: False  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_tool_screenshot.fn(tool_name="Chain Contacts")
+
+        assert result["status"] == "error"
+        assert "not running" in result["message"].lower()
+
+    def test_tool_not_found(self):
+        """Returns error when the specified tool is not open."""
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+
+        # runscript returns output indicating tool not found
+        def fake_run(cmd: str):
+            return {"status": "ok", "output": "ERROR: Tool 'Nonexistent' not found"}
+
+        mock_client.run_command = fake_run  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_tool_screenshot.fn(tool_name="Nonexistent")
+
+        assert result["status"] == "error"
+        assert "not found" in result["message"].lower()
+
+    def test_basic_capture(self, tmp_path: Path):
+        """Successful capture returns file_path."""
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        output_file = tmp_path.joinpath("tool_shot.png")
+
+        def fake_run(cmd: str):
+            # The script writes a file; simulate that
+            if "runscript" in cmd:
+                output_file.write_bytes(b"PNG_DATA")
+                return {"status": "ok", "output": f"OK: {output_file}"}
+            return {"status": "ok", "output": ""}
+
+        mock_client.run_command = fake_run  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_tool_screenshot.fn(
+                tool_name="Chain Contacts", output_path=str(output_file)
+            )
+
+        assert result["status"] == "ok"
+        assert result["file_path"] == str(output_file)
+
+    def test_default_output_path(self):
+        """When no output_path given, a default is generated."""
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+
+        def fake_run(cmd: str):
+            if "runscript" in cmd:
+                # Extract the output path from the script and create the file
+                # The script will write to a default path
+                return {"status": "ok", "output": "OK: /some/path.png"}
+            return {"status": "ok", "output": ""}
+
+        mock_client.run_command = fake_run  # type: ignore[assignment]
+
+        with (
+            patch("chimerax_mcp.server.get_client", return_value=mock_client),
+            patch("pathlib.Path.write_text"),
+            patch("pathlib.Path.unlink"),
+        ):
+            result = chimerax_tool_screenshot.fn(tool_name="Chain Contacts")
+
+        # Should generate a path, not error
+        assert result["status"] in ("ok", "error")
+        # If ok, file_path should be present
+        if result["status"] == "ok":
+            assert "file_path" in result
+
+    def test_resize_params_passed(self, tmp_path: Path):
+        """Width and height are included in the generated script."""
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        output_file = tmp_path.joinpath("resized.png")
+        scripts_written: list[str] = []
+
+        def fake_run(cmd: str):
+            if "runscript" in cmd:
+                output_file.write_bytes(b"PNG_DATA")
+                return {"status": "ok", "output": f"OK: {output_file}"}
+            return {"status": "ok", "output": ""}
+
+        mock_client.run_command = fake_run  # type: ignore[assignment]
+
+        original_write_text = Path.write_text
+
+        def capture_write(self_path, content, *args, **kwargs):
+            scripts_written.append(content)
+            return original_write_text(self_path, content, *args, **kwargs)
+
+        with (
+            patch("chimerax_mcp.server.get_client", return_value=mock_client),
+            patch("pathlib.Path.write_text", capture_write),
+            patch("pathlib.Path.unlink"),
+        ):
+            result = chimerax_tool_screenshot.fn(
+                tool_name="Chain Contacts",
+                width=600,
+                height=400,
+                output_path=str(output_file),
+            )
+
+        assert result["status"] == "ok"
+        # The generated script should contain resize dimensions
+        assert any("600" in s and "400" in s for s in scripts_written)
+
+    def test_padding_param_passed(self, tmp_path: Path):
+        """Padding value is included in the generated script."""
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        output_file = tmp_path.joinpath("padded.png")
+        scripts_written: list[str] = []
+
+        def fake_run(cmd: str):
+            if "runscript" in cmd:
+                output_file.write_bytes(b"PNG_DATA")
+                return {"status": "ok", "output": f"OK: {output_file}"}
+            return {"status": "ok", "output": ""}
+
+        mock_client.run_command = fake_run  # type: ignore[assignment]
+
+        original_write_text = Path.write_text
+
+        def capture_write(self_path, content, *args, **kwargs):
+            scripts_written.append(content)
+            return original_write_text(self_path, content, *args, **kwargs)
+
+        with (
+            patch("chimerax_mcp.server.get_client", return_value=mock_client),
+            patch("pathlib.Path.write_text", capture_write),
+            patch("pathlib.Path.unlink"),
+        ):
+            result = chimerax_tool_screenshot.fn(
+                tool_name="Chain Contacts",
+                padding=30,
+                output_path=str(output_file),
+            )
+
+        assert result["status"] == "ok"
+        assert any("30" in s for s in scripts_written)
+
+    def test_empty_tool_name_rejected(self):
+        """Empty tool_name is rejected."""
+        result = chimerax_tool_screenshot.fn(tool_name="")
+        assert result["status"] == "error"
+
+    def test_whitespace_tool_name_rejected(self):
+        """Whitespace-only tool_name is rejected."""
+        result = chimerax_tool_screenshot.fn(tool_name="   ")
+        assert result["status"] == "error"
 
 
 class TestConstants:

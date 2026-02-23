@@ -272,6 +272,150 @@ def chimerax_reset() -> dict[str, Any]:
     return {"status": "ok", "message": f"Reset complete ({len(_RESET_COMMANDS)} commands executed)"}
 
 
+def _build_tool_screenshot_script(
+    tool_name: str,
+    output_path: str,
+    width: int | None = None,
+    height: int | None = None,
+    padding: int = 0,
+) -> str:
+    """Build a Python script for ChimeraX to capture a tool window screenshot."""
+    lines = [
+        "import sys",
+        "from Qt.QtCore import Qt",
+        "from Qt.QtGui import QPixmap, QPainter, QColor",
+        "from Qt.QtWidgets import QApplication",
+        "",
+        f"tool_name = {tool_name!r}",
+        f"output_path = {output_path!r}",
+        f"resize_w = {width!r}",
+        f"resize_h = {height!r}",
+        f"padding = {padding!r}",
+        "",
+        "target = None",
+        "for t in session.tools.list():",
+        "    if t.tool_name == tool_name:",
+        "        target = t",
+        "        break",
+        "",
+        "if target is None:",
+        "    print('ERROR: Tool ' + repr(tool_name) + ' not found')",
+        "    sys.exit(0)",
+        "",
+        "ua = target.tool_window.ui_area",
+        "original_size = ua.size()",
+        "",
+        "if resize_w is not None and resize_h is not None:",
+        "    ua.resize(resize_w, resize_h)",
+        "    QApplication.processEvents()",
+        "elif resize_w is not None:",
+        "    ua.resize(resize_w, original_size.height())",
+        "    QApplication.processEvents()",
+        "elif resize_h is not None:",
+        "    ua.resize(original_size.width(), resize_h)",
+        "    QApplication.processEvents()",
+        "",
+        "pixmap = ua.grab()",
+        "",
+        "if resize_w is not None or resize_h is not None:",
+        "    ua.resize(original_size)",
+        "    QApplication.processEvents()",
+        "",
+        "if padding > 0:",
+        "    padded = QPixmap(pixmap.width() + 2 * padding, pixmap.height() + 2 * padding)",
+        "    padded.fill(QColor(255, 255, 255))",
+        "    painter = QPainter(padded)",
+        "    painter.drawPixmap(padding, padding, pixmap)",
+        "    painter.end()",
+        "    pixmap = padded",
+        "",
+        "pixmap.save(output_path)",
+        "print('OK: ' + output_path)",
+    ]
+    return "\n".join(lines)
+
+
+@mcp.tool()
+def chimerax_tool_screenshot(
+    tool_name: str,
+    width: int | None = None,
+    height: int | None = None,
+    padding: int = 0,
+    output_path: str | None = None,
+) -> dict[str, Any]:
+    """Capture a screenshot of a ChimeraX tool window (e.g., Interfaces, Log).
+
+    This captures separate tool panels, not the main 3D view.
+    Use ``chimerax_screenshot`` for the main 3D view.
+
+    Args:
+        tool_name: Name of the tool window to capture (e.g., "Chain Contacts", "Log")
+        width: Optional width to resize the widget before capture
+        height: Optional height to resize the widget before capture
+        padding: Pixels of white padding around the image (default: 0)
+        output_path: Where to save the image. If not provided, saves to
+            ``~/.local/share/chimerax-mcp/screenshots/`` with a timestamp filename.
+
+    Returns:
+        File path to the saved screenshot image.
+    """
+    if not tool_name or not tool_name.strip():
+        return {"status": "error", "message": "tool_name must not be empty"}
+
+    client = get_client()
+    if not client.is_running():
+        return {"status": "error", "message": "ChimeraX is not running"}
+
+    # Determine output path
+    if output_path is not None:
+        stripped = output_path.strip()
+        if not stripped:
+            return {"status": "error", "message": "output_path must not be empty or whitespace"}
+        resolved = Path(stripped)
+    else:
+        screenshots_dir = Path.home().joinpath(".local", "share", "chimerax-mcp", "screenshots")
+        screenshots_dir.mkdir(parents=True, exist_ok=True)
+        import datetime
+
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        resolved = screenshots_dir.joinpath(f"tool_{timestamp}.png")
+
+    # Build and write temp script
+    script = _build_tool_screenshot_script(
+        tool_name=tool_name.strip(),
+        output_path=str(resolved),
+        width=width,
+        height=height,
+        padding=padding,
+    )
+    import tempfile
+
+    script_path = Path(tempfile.gettempdir()).joinpath("chimerax_tool_grab.py")
+    script_path.write_text(script)
+
+    try:
+        result = client.run_command(f"runscript {script_path}")
+        output = result.get("output", "")
+
+        if "ERROR:" in output:
+            msg = output.split("ERROR:", 1)[1].strip()
+            return {"status": "error", "message": msg}
+
+        if "OK:" in output:
+            return {
+                "status": "ok",
+                "tool_name": tool_name.strip(),
+                "file_path": str(resolved),
+            }
+
+        return {"status": "error", "message": f"Unexpected output: {output}"}
+    except httpx.HTTPError as e:
+        return {"status": "error", "message": f"HTTP error: {e}"}
+    finally:
+        with contextlib.suppress(OSError):
+            script_path.unlink()
+
+
 @mcp.tool()
 def chimerax_screenshot(
     width: int = 1024,

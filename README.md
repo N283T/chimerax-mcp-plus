@@ -60,6 +60,7 @@ Or if installed globally:
 | `chimerax_run` | Execute any ChimeraX command |
 | `chimerax_models` | List open models |
 | `chimerax_screenshot` | Capture screenshot (supports auto-fit) |
+| `chimerax_tool_screenshot` | Capture screenshot of a tool window |
 
 ### View Management
 
