@@ -372,8 +372,13 @@ class TestResetTool:
             nonlocal call_count
             call_count += 1
             if call_count == 2:
-                return {"status": "error", "message": "command failed"}
-            return {"status": "ok"}
+                return {
+                    "python_values": [],
+                    "json_values": [],
+                    "log_messages": {},
+                    "error": {"type": "UserError", "message": "command failed"},
+                }
+            return {"python_values": [], "json_values": [], "log_messages": {}, "error": None}
 
         mock_client.is_running = lambda: True  # type: ignore[assignment]
         mock_client.run_command = fake_run  # type: ignore[assignment]
@@ -433,7 +438,12 @@ class TestResetTool:
         mock_client = ChimeraXClient(port=59998)
 
         def fake_run(cmd: str):
-            return {"status": "error", "message": f"{cmd} failed"}
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {},
+                "error": {"type": "UserError", "message": f"{cmd} failed"},
+            }
 
         mock_client.is_running = lambda: True  # type: ignore[assignment]
         mock_client.run_command = fake_run  # type: ignore[assignment]
@@ -539,7 +549,12 @@ class TestToolScreenshot:
 
         # runscript returns output indicating tool not found
         def fake_run(cmd: str):
-            return {"status": "ok", "output": "ERROR: Tool 'Nonexistent' not found"}
+            return {
+                "python_values": [],
+                "json_values": [None],
+                "log_messages": {"info": ["ERROR: Tool 'Nonexistent' not found"]},
+                "error": None,
+            }
 
         mock_client.run_command = fake_run  # type: ignore[assignment]
 
@@ -559,8 +574,13 @@ class TestToolScreenshot:
             # The script writes a file; simulate that
             if "runscript" in cmd:
                 output_file.write_bytes(b"PNG_DATA")
-                return {"status": "ok", "output": f"OK: {output_file}"}
-            return {"status": "ok", "output": ""}
+                return {
+                    "python_values": [],
+                    "json_values": [None],
+                    "log_messages": {"info": [f"OK: {output_file}"]},
+                    "error": None,
+                }
+            return {"python_values": [], "json_values": [], "log_messages": {}, "error": None}
 
         mock_client.run_command = fake_run  # type: ignore[assignment]
 
@@ -580,8 +600,13 @@ class TestToolScreenshot:
 
         def fake_run(cmd: str):
             if "runscript" in cmd:
-                return {"status": "ok", "output": "OK: /some/path.png"}
-            return {"status": "ok", "output": ""}
+                return {
+                    "python_values": [],
+                    "json_values": [None],
+                    "log_messages": {"info": ["OK: /some/path.png"]},
+                    "error": None,
+                }
+            return {"python_values": [], "json_values": [], "log_messages": {}, "error": None}
 
         mock_client.run_command = fake_run  # type: ignore[assignment]
 
@@ -617,8 +642,13 @@ class TestToolScreenshot:
         def fake_run(cmd: str):
             if "runscript" in cmd:
                 output_file.write_bytes(b"PNG_DATA")
-                return {"status": "ok", "output": f"OK: {output_file}"}
-            return {"status": "ok", "output": ""}
+                return {
+                    "python_values": [],
+                    "json_values": [None],
+                    "log_messages": {"info": [f"OK: {output_file}"]},
+                    "error": None,
+                }
+            return {"python_values": [], "json_values": [], "log_messages": {}, "error": None}
 
         mock_client.run_command = fake_run  # type: ignore[assignment]
 
@@ -654,8 +684,13 @@ class TestToolScreenshot:
         def fake_run(cmd: str):
             if "runscript" in cmd:
                 output_file.write_bytes(b"PNG_DATA")
-                return {"status": "ok", "output": f"OK: {output_file}"}
-            return {"status": "ok", "output": ""}
+                return {
+                    "python_values": [],
+                    "json_values": [None],
+                    "log_messages": {"info": [f"OK: {output_file}"]},
+                    "error": None,
+                }
+            return {"python_values": [], "json_values": [], "log_messages": {}, "error": None}
 
         mock_client.run_command = fake_run  # type: ignore[assignment]
 
@@ -715,7 +750,12 @@ class TestToolScreenshot:
         mock_client.is_running = lambda: True  # type: ignore[assignment]
 
         def fake_run(cmd: str):
-            return {"status": "ok", "output": "some random output"}
+            return {
+                "python_values": [],
+                "json_values": [None],
+                "log_messages": {"info": ["some random output"]},
+                "error": None,
+            }
 
         mock_client.run_command = fake_run  # type: ignore[assignment]
 
