@@ -1,0 +1,3 @@
+# Docs symlink - points to local ChimeraX installation
+# Users must create this symlink manually (see README)
+docs

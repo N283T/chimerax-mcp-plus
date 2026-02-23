@@ -104,6 +104,42 @@ User: "Test my ChimeraX bundle in ./my-bundle"
 Claude uses bundle_test(bundle_path="./my-bundle", smoke=True)
 ```
 
+## Claude Code Skills
+
+This repository includes Claude Code skills for ChimeraX documentation reference and bundle development.
+
+### Available Skills
+
+| Skill | Description |
+|-------|-------------|
+| `/explore-chimerax` | Router skill - documentation reference and sub-skill routing |
+| `/explore-chimerax-commands` | Command exploration and MCP operation reference |
+| `/reference-chimerax-dev` | Bundle/extension development reference |
+
+### Installation
+
+Copy the skills to your Claude Code skills directory:
+
+```bash
+cp -r skills/* ~/.claude/skills/
+```
+
+### Setting Up Documentation
+
+The skills reference local ChimeraX HTML documentation. Create a symlink to your ChimeraX installation's docs:
+
+```bash
+# macOS
+ln -s /Applications/ChimeraX-1.9.app/Contents/share/docs \
+  ~/.claude/skills/explore-chimerax/assets/docs
+
+# Linux (adjust path to your ChimeraX installation)
+ln -s /usr/lib/ucsf-chimerax/share/docs \
+  ~/.claude/skills/explore-chimerax/assets/docs
+```
+
+The pre-built index (`chimerax-1.9.index.json`) is included and covers 149 commands, 13 tutorials, and 16 API modules.
+
 ## Requirements
 
 - [UCSF ChimeraX](https://www.cgl.ucsf.edu/chimerax/)
