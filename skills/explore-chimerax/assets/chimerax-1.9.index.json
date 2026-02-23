@@ -1,0 +1,3255 @@
+{
+  "version": "1.9",
+  "created": "2026-02-23T06:23:28.162808+00:00",
+  "commands": {
+    "2dlabels": {
+      "path": "user/commands/2dlabels.html",
+      "title": "Command: 2dlabels",
+      "description": "Command: 2dlabels @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : 2dlabels Get this session... The 2dlabels command adds text, symbols ,\nand straight arrows to the disp"
+    },
+    "addcharge": {
+      "path": "user/commands/addcharge.html",
+      "title": "Command: addcharge",
+      "description": "Command: addcharge @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : addcharge Usage : addcharge residue-spec [ method am1-bcc | gasteiger ]\n[ standardizeResidues list ] "
+    },
+    "addh": {
+      "path": "user/commands/addh.html",
+      "title": "Command: addh",
+      "description": "Command: addh @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : addh Usage : addh model-spec [ hbond true | false ]\n[ inIsolation true | false ]\n[ metalDist d ]\n[ templat"
+    },
+    "alias": {
+      "path": "user/commands/alias.html",
+      "title": "Command: alias",
+      "description": "Command: alias @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : alias Usage : alias name [ wordlist ] Usage : alias list [ internal ] Usage : alias delete ( name | all )"
+    },
+    "align": {
+      "path": "user/commands/align.html",
+      "title": "Command: align",
+      "description": "Command: align @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : align Usage : align matchatoms toAtoms refatoms [ cutoffDistance d ]\n[ move what ]\n[ each level ]\n[ repor"
+    },
+    "alphafold": {
+      "path": "user/commands/alphafold.html",
+      "title": "Command: alphafold",
+      "description": "Command: alphafold @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : alphafold AlphaFold is an artificial intelligence method for predicting the atomic structures\nof biom"
+    },
+    "altlocs": {
+      "path": "user/commands/altlocs.html",
+      "title": "Command: altlocs",
+      "description": "Command: altlocs @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : altlocs The altlocs command lists and manages alternate locations ,\nwhere an atomic structure contains "
+    },
+    "angle": {
+      "path": "user/commands/angle.html",
+      "title": "Command: angle",
+      "description": "Command: angle @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : angle Usage : angle spec Usage : angle atom-spec [ angle ]\n[ move large | small ] The angle command repor"
+    },
+    "atomspec-diffsum": {
+      "path": "user/commands/atomspec-diffsum.html",
+      "title": "Target Specification in ChimeraX versus Chimera",
+      "description": "Target Specification in ChimeraX versus Chimera @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Target Specification in ChimeraX versus Chimera In this page, “Chimera” is used to"
+    },
+    "atomspec": {
+      "path": "user/commands/atomspec.html",
+      "title": "Atom Specification (ChimeraX)",
+      "description": "Atom Specification (ChimeraX) @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command-Line Target Specification Most commands require or allow specifying which items they should "
+    },
+    "blastprotein": {
+      "path": "user/commands/blastprotein.html",
+      "title": "Command: blastprotein",
+      "description": "Command: blastprotein @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : blastprotein Usage : blastprotein sequence [ database sequence-database ]\n[ version 1 | 2 | 3 ]\n[ "
+    },
+    "bond": {
+      "path": "user/commands/bond.html",
+      "title": "Command: bond",
+      "description": "Command: bond @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : bond Usage : bond atom-spec [ reasonable true | false ] Usage : ~bond atom-spec Usage : bond length atom-s"
+    },
+    "build": {
+      "path": "user/commands/build.html",
+      "title": "Command: build",
+      "description": "Command: build @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : build Subcommands of build correspond to sections of\nthe Build Structure tool: build start – generate a n"
+    },
+    "bumps": {
+      "path": "user/commands/bumps.html",
+      "title": "Command: bumps",
+      "description": "Command: bumps @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : bumps Usage : bumps volume-model center point-spec [ range r ]\n[ baseArea a ]\n[ height h ] other-options "
+    },
+    "buttonpanel": {
+      "path": "user/commands/buttonpanel.html",
+      "title": "Command: buttonpanel",
+      "description": "Command: buttonpanel @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : buttonpanel Usage : buttonpanel title [ rows N ]\n[ columns M ]\n[ fill rows | columns ] Usage : butt"
+    },
+    "camera": {
+      "path": "user/commands/camera.html",
+      "title": "Command: camera",
+      "description": "Command: camera @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : camera Usage : camera [ mode ]\n[ eyeSeparation distance ]\n[ fieldOfView field-angle ]\n[ convergence angl"
+    },
+    "cartoon": {
+      "path": "user/commands/cartoon.html",
+      "title": "Command: cartoon, ribbon, worm",
+      "description": "Command: cartoon, ribbon, worm @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : cartoon, ribbon, worm Usage : ( cartoon | ribbon ) atom-spec [ smooth factor | default ]\n"
+    },
+    "ribbon": {
+      "path": "user/commands/cartoon.html",
+      "title": "Command: cartoon, ribbon, worm",
+      "description": "Command: cartoon, ribbon, worm @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : cartoon, ribbon, worm Usage : ( cartoon | ribbon ) atom-spec [ smooth factor | default ]\n"
+    },
+    "worm": {
+      "path": "user/commands/cartoon.html",
+      "title": "Command: cartoon, ribbon, worm",
+      "description": "Command: cartoon, ribbon, worm @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : cartoon, ribbon, worm Usage : ( cartoon | ribbon ) atom-spec [ smooth factor | default ]\n"
+    },
+    "cd": {
+      "path": "user/commands/cd.html",
+      "title": "Command: cd",
+      "description": "Command: cd @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : cd Usage : cd [ directory ] The command cd changes the current working directory to the\nspecified directory "
+    },
+    "changechains": {
+      "path": "user/commands/changechains.html",
+      "title": "Command: changechains",
+      "description": "Command: changechains @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : changechains Usage : changechains atom-spec new-ID Usage : changechains atom-spec current-ID-list "
+    },
+    "clashes": {
+      "path": "user/commands/clashes.html",
+      "title": "Command: clashes, contacts",
+      "description": "Command: clashes, contacts @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : clashes, contacts Usage : ( clashes | contacts ) atom-spec1 [ restrict cross | both | any | a"
+    },
+    "contacts": {
+      "path": "user/commands/clashes.html",
+      "title": "Command: clashes, contacts",
+      "description": "Command: clashes, contacts @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : clashes, contacts Usage : ( clashes | contacts ) atom-spec1 [ restrict cross | both | any | a"
+    },
+    "clip": {
+      "path": "user/commands/clip.html",
+      "title": "Command: clip",
+      "description": "Command: clip @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : clip Usage : clip [ near offset near | off ]\n[ far offset far | off ]\n[ front offset front | off ]\n[ back "
+    },
+    "close": {
+      "path": "user/commands/close.html",
+      "title": "Command: close",
+      "description": "Command: close @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : close Usage : close model-spec Usage : close session The command close removes the specified model(s) fro"
+    },
+    "cofr": {
+      "path": "user/commands/cofr.html",
+      "title": "Command: cofr",
+      "description": "Command: cofr @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : cofr Usage : cofr [ frontCenter | centerOfView | fixed ]\n[ showPivot true | false | length,radius ] Usage "
+    },
+    "color": {
+      "path": "user/commands/color.html",
+      "title": "Command: color, rainbow",
+      "description": "Command: color, rainbow @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : color, rainbow Depending on the type of coloring, color may apply to\ndifferent sets of items: Si"
+    },
+    "rainbow": {
+      "path": "user/commands/color.html",
+      "title": "Command: color, rainbow",
+      "description": "Command: color, rainbow @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : color, rainbow Depending on the type of coloring, color may apply to\ndifferent sets of items: Si"
+    },
+    "colornames": {
+      "path": "user/commands/colornames.html",
+      "title": "Command-Line Color Specification",
+      "description": "Command-Line Color Specification @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command-Line Color Specification Colors can be specified in commands ( color , etc. ) with: prede"
+    },
+    "colortables": {
+      "path": "user/commands/colortables.html",
+      "title": "Coloring by Model, Chain, Element (Initial Colors)",
+      "description": "Coloring by Model, Chain, Element (Initial Colors) @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Coloring by Model, Chain, Residue, Element Built-in coloring schemes are shown "
+    },
+    "combine": {
+      "path": "user/commands/combine.html",
+      "title": "Command: combine",
+      "description": "Command: combine @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : combine Usage : combine input-model-spec [ close true | false ]\n[ retainIds true | false ]\n[ modelId mo"
+    },
+    "coordset": {
+      "path": "user/commands/coordset.html",
+      "title": "Command: coordset",
+      "description": "Command: coordset @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : coordset Usage : coordset model-spec frame [ computeSs true | false ]\n[ holdSteady atom-spec ] Usage :"
+    },
+    "coulombic": {
+      "path": "user/commands/coulombic.html",
+      "title": "Command: coulombic",
+      "description": "Command: coulombic @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : coulombic Usage : coulombic atom-spec [ distDep true | false ]\n[ dielectric C ]\n[ offset d ]\n[ surfac"
+    },
+    "crossfade": {
+      "path": "user/commands/crossfade.html",
+      "title": "Command: crossfade",
+      "description": "Command: crossfade @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : crossfade Usage : crossfade [ frames ] The crossfade command fades the current display image\nover a s"
+    },
+    "crosslinks": {
+      "path": "user/commands/crosslinks.html",
+      "title": "Command: crosslinks",
+      "description": "Command: crosslinks @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : crosslinks Usage : crosslinks pseudobond-spec [ radius r ]\n[ dashes N ]\n[ color color-spec ] The cro"
+    },
+    "crystalcontacts": {
+      "path": "user/commands/crystalcontacts.html",
+      "title": "Command: crystalcontacts",
+      "description": "Command: crystalcontacts @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : crystalcontacts Usage : crystalcontacts atomic-model [ distance r ]\n[ copies true | false ]\n[ r"
+    },
+    "defattr": {
+      "path": "user/commands/defattr.html",
+      "title": "Command: defattr",
+      "description": "Command: defattr @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : defattr Usage : defattr [ atom-spec ] attr-file [ log true | false ] The defattr command assigns attrib"
+    },
+    "define": {
+      "path": "user/commands/define.html",
+      "title": "Command: define",
+      "description": "Command: define @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : define The define command calculates and displays geometric objects based on\natomic coordinates: axis – "
+    },
+    "delete": {
+      "path": "user/commands/delete.html",
+      "title": "Command: delete",
+      "description": "Command: delete @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : delete Usage : delete [ atoms | bonds | pseudobonds | pbonds ] spec [ attachedHyds true false ]\n[ name p"
+    },
+    "device": {
+      "path": "user/commands/device.html",
+      "title": "Command: device, vr",
+      "description": "Command: device, vr @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : device, vr, xr Usage : device device-type [ status ] device-options The device command sets modes fo"
+    },
+    "vr": {
+      "path": "user/commands/device.html",
+      "title": "Command: device, vr",
+      "description": "Command: device, vr @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : device, vr, xr Usage : device device-type [ status ] device-options The device command sets modes fo"
+    },
+    "distance": {
+      "path": "user/commands/distance.html",
+      "title": "Command: distance",
+      "description": "Command: distance @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : distance Usage : distance object1 object2 [ signed true | false ]\n[ monitor true | false ]\n[ display-o"
+    },
+    "dockprep": {
+      "path": "user/commands/dockprep.html",
+      "title": "Command: dockprep",
+      "description": "Command: dockprep @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : dockprep Usage : dockprep atomic-model-spec [ memorize none | save | use ]\n[ delSolvent true | false ]"
+    },
+    "dssp": {
+      "path": "user/commands/dssp.html",
+      "title": "Command: dssp",
+      "description": "Command: dssp @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : dssp Usage : dssp atom-spec [ energyCutoff c ]\n[ minHelixLen N ]\n[ minStrandLen M ]\n[ report true | false "
+    },
+    "esmfold": {
+      "path": "user/commands/esmfold.html",
+      "title": "Command: esmfold",
+      "description": "Command: esmfold @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : esmfold ESMFold (Evolutionary Scale Modeling)\nis an artificial intelligence method for predicting prote"
+    },
+    "exit": {
+      "path": "user/commands/exit.html",
+      "title": "Command: exit, quit",
+      "description": "Command: exit, quit @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : exit, quit Usage : ( exit | quit ) The command exit or quit exits from ChimeraX.\nSee also: close UCS"
+    },
+    "quit": {
+      "path": "user/commands/exit.html",
+      "title": "Command: exit, quit",
+      "description": "Command: exit, quit @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : exit, quit Usage : ( exit | quit ) The command exit or quit exits from ChimeraX.\nSee also: close UCS"
+    },
+    "fitmap": {
+      "path": "user/commands/fitmap.html",
+      "title": "Command: fitmap",
+      "description": "Command: fitmap @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : fitmap Usage : fitmap fit-model inMap ref-model options global-search-options The fitmap command perform"
+    },
+    "fly": {
+      "path": "user/commands/fly.html",
+      "title": "Command: fly",
+      "description": "Command: fly @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : fly Usage : fly [ master-frames ] pos1 [[ frames1_2 ] pos2 ]\n[[ frames2_3 ] pos3 ] ...\n[[ framesN-1_N ] pos"
+    },
+    "foldseek": {
+      "path": "user/commands/foldseek.html",
+      "title": "Command: foldseek",
+      "description": "Command: foldseek @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : foldseek Usage : foldseek chain-spec [ database structure-database ]\n[ showTable true | false ] [ trim"
+    },
+    "getcrd": {
+      "path": "user/commands/getcrd.html",
+      "title": "Command: getcrd",
+      "description": "Command: getcrd @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : getcrd Usage : getcrd atom-spec [ model | scene | screen ] The getcrd command reports the coordinates of"
+    },
+    "graphics": {
+      "path": "user/commands/graphics.html",
+      "title": "Command: graphics",
+      "description": "Command: graphics @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : graphics The graphics command sets graphical rendering parameters,\nwith additional options detailed be"
+    },
+    "hbonds": {
+      "path": "user/commands/hbonds.html",
+      "title": "Command: hbonds",
+      "description": "Command: hbonds @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : hbonds Usage : hbonds atom-spec1 [ saltOnly true | false ]\n[ restrict cross | both | any | atom-spec2 ]\n"
+    },
+    "help": {
+      "path": "user/commands/help.html",
+      "title": "Command: help",
+      "description": "Command: help @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : help Usage : help [ newTab ] command The command help shows the help page for the specified command , if a"
+    },
+    "hkcage": {
+      "path": "user/commands/hkcage.html",
+      "title": "Command: hkcage",
+      "description": "Command: hkcage @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : hkcage Usage : hkcage h k [ radius cage-radius ]\n[ edgeRadius stick-radius ]\n[ orientation type ]\n[ sphe"
+    },
+    "info": {
+      "path": "user/commands/info.html",
+      "title": "Command: info",
+      "description": "Command: info @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : info Usage : info model-spec [ saveFile file ] The top-level info command shows information about the \nspe"
+    },
+    "interfaces": {
+      "path": "user/commands/interfaces.html",
+      "title": "Command: interfaces",
+      "description": "Command: interfaces @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : interfaces Usage : interfaces atom-spec [ probeRadius rad ]\n[ areaCutoff interface-area ] \n[ interfa"
+    },
+    "key": {
+      "path": "user/commands/key.html",
+      "title": "Command: key",
+      "description": "Command: key @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : key Usage : key [ colors-and-labels ]\n[ size width,height ]\n[ pos xpos,ypos ]\n[ numericLabelSpacing equal |"
+    },
+    "kvfinder": {
+      "path": "user/commands/kvfinder.html",
+      "title": "Command: kvfinder",
+      "description": "Command: kvfinder @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : kvfinder Usage : kvfinder model-spec [ probeIn r1 ]\n[ probeOut r2 ]\n[ removalDistance d ]\n[ volumeCuto"
+    },
+    "label": {
+      "path": "user/commands/label.html",
+      "title": "Command: label",
+      "description": "Command: label @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : label Usage : label atom-spec [ level ]\n[ color color-spec | default ]\n[ height h | fixed ] other-options"
+    },
+    "lighting": {
+      "path": "user/commands/lighting.html",
+      "title": "Command: lighting",
+      "description": "Command: lighting @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : lighting Usage : lighting [ preset ] options Usage : lighting model spec model-options The lighting co"
+    },
+    "log": {
+      "path": "user/commands/log.html",
+      "title": "Command: log",
+      "description": "Command: log @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : log Usage : log [ thumbnail [ width w ][ height h ]] \n[ text | html character string ] Usage : log ( show |"
+    },
+    "marker": {
+      "path": "user/commands/marker.html",
+      "title": "Command: marker",
+      "description": "Command: marker @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : marker The marker command adds or modifies markers and links , \nnonatomic representations used for marki"
+    },
+    "matchmaker": {
+      "path": "user/commands/matchmaker.html",
+      "title": "Command: matchmaker, mmaker",
+      "description": "Command: matchmaker, mmaker @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : matchmaker, mmaker Usage : ( matchmaker | mmaker ) matchstruct to refstruct [ bring other-mo"
+    },
+    "mmaker": {
+      "path": "user/commands/matchmaker.html",
+      "title": "Command: matchmaker, mmaker",
+      "description": "Command: matchmaker, mmaker @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : matchmaker, mmaker Usage : ( matchmaker | mmaker ) matchstruct to refstruct [ bring other-mo"
+    },
+    "material": {
+      "path": "user/commands/material.html",
+      "title": "Command: material",
+      "description": "Command: material @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : material Usage : material [ preset ] options The material command sets material properties for light r"
+    },
+    "mcopy": {
+      "path": "user/commands/mcopy.html",
+      "title": "Command: mcopy",
+      "description": "Command: mcopy @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : mcopy Usage : mcopy source toAtoms target [ settings [ c ][ s ][ v ][ h ][ l ][ x ][ y ][ p ] | a ]\n[ mat"
+    },
+    "measure": {
+      "path": "user/commands/measure.html",
+      "title": "Command: measure",
+      "description": "Command: measure @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : measure Usage : measure property arguments The measure command performs various calculations\nand sends "
+    },
+    "meeting": {
+      "path": "user/commands/meeting.html",
+      "title": "Command: meeting",
+      "description": "Command: meeting @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : meeting The meeting command shares a scene between\ntwo or more ChimeraX instances running on different "
+    },
+    "mlp": {
+      "path": "user/commands/mlp.html",
+      "title": "Command: mlp",
+      "description": "Command: mlp @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : mlp Usage : mlp atom-spec [ method fauchere | brasseur | type5 | dubost | buckingham [ nexp n ]]\n[ maxDista"
+    },
+    "modelcif": {
+      "path": "user/commands/modelcif.html",
+      "title": "Command: modelcif",
+      "description": "Command: modelcif @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : modelcif Usage : modelcif pae model-spec [ metricName name ]\n[ defaultScore s ]\n[ jsonOutputPath filen"
+    },
+    "modeller": {
+      "path": "user/commands/modeller.html",
+      "title": "Command: modeller",
+      "description": "Command: modeller @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : modeller Usage : modeller  comparative sequence-spec [ sequence-spec ... ]\n[ licenseKey key ] other-op"
+    },
+    "molmap": {
+      "path": "user/commands/molmap.html",
+      "title": "Command: molmap",
+      "description": "Command: molmap @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : molmap Usage : molmap atom-spec resolution options The command molmap generates a density map from the s"
+    },
+    "morph": {
+      "path": "user/commands/morph.html",
+      "title": "Command: morph",
+      "description": "Command: morph @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : morph Usage : morph model-spec [ wrap true | false ]\n[ frames N ]\n[ same true | false ]\n[ hideModels true"
+    },
+    "move": {
+      "path": "user/commands/move.html",
+      "title": "Command: move",
+      "description": "Command: move @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : move Usage : move axis [ distance [ frames ]]\n[ coordinateSystem model-spec ]\n[ models model-spec | atoms "
+    },
+    "movie": {
+      "path": "user/commands/movie.html",
+      "title": "Command: movie",
+      "description": "Command: movie @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : movie Usage : movie action options The movie command captures image frames from ChimeraX\nand assembles th"
+    },
+    "mseries": {
+      "path": "user/commands/mseries.html",
+      "title": "Command: mseries",
+      "description": "Command: mseries @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : mseries Usage : mseries model-spec [ step i ]\n[ pauseFrames M ]\n[ loop N ] Usage : mseries slider model"
+    },
+    "mutationscores": {
+      "path": "user/commands/mutationscores.html",
+      "title": "Command: mutationscores",
+      "description": "Command: mutationscores @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : mutationscores The mutationscores command shows the results of deep mutational \nscanning on prot"
+    },
+    "name": {
+      "path": "user/commands/name.html",
+      "title": "Command: name",
+      "description": "Command: name @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : name Usage : name target-name spec Usage : name frozen target-name spec Usage : name list [ builtins true "
+    },
+    "nucleotides": {
+      "path": "user/commands/nucleotides.html",
+      "title": "Command: nucleotides",
+      "description": "Command: nucleotides @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : nucleotides Usage : nucleotides atom-spec mode mode-options Usage : ~nucleotides atom-spec The nucl"
+    },
+    "open": {
+      "path": "user/commands/open.html",
+      "title": "Command: open",
+      "description": "Command: open @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : open Usage : open ( filename | URL | [ prefix :] identifier )\n[ maxModels M ]\n[ coordsets true | false ] o"
+    },
+    "palette": {
+      "path": "user/commands/palette.html",
+      "title": "Command: palette",
+      "description": "Command: palette @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : palette Usage : palette list The command palette list lists the names of the available palettes in the "
+    },
+    "palettes": {
+      "path": "user/commands/palettes.html",
+      "title": "Palettes",
+      "description": "Palettes @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Palettes A palette is an ordered set of colors or value,color pairs \nspecified with the palette option of color , coulomb"
+    },
+    "pbond": {
+      "path": "user/commands/pbond.html",
+      "title": "Command: pbond",
+      "description": "Command: pbond @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : pbond Usage : pbond atom1 atom2 [ reveal true | false ]\n[ showDist true | false ]\n[ color color-spec ]\n[ "
+    },
+    "perframe": {
+      "path": "user/commands/perframe.html",
+      "title": "Command: perframe",
+      "description": "Command: perframe @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : perframe Usage : perframe operation [ range start,end [ ,step ]] M [ frames N ]\n[ interval K ]\n[ zeroP"
+    },
+    "pointspec": {
+      "path": "user/commands/pointspec.html",
+      "title": "Command-Line Specification: Points, Vectors",
+      "description": "Command-Line Specification: Points, Vectors @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command-Line Specification: Points, Vectors Many commands require or optionally use\nsp"
+    },
+    "preset": {
+      "path": "user/commands/preset.html",
+      "title": "Command: preset",
+      "description": "Command: preset @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : preset Usage : preset [ category ] preset-name A preset is a predefined combination of display settings,"
+    },
+    "pwd": {
+      "path": "user/commands/pwd.html",
+      "title": "Command: pwd",
+      "description": "Command: pwd @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : pwd Usage : pwd The command pwd reports the current working directory in the Log .\nThe working directory ca"
+    },
+    "registration status": {
+      "path": "user/commands/registration.html",
+      "title": "Command: registration status",
+      "description": "Command: registration status @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : registration status Usage : registration status [ verbose ] A user is prompted to register "
+    },
+    "remotecontrol": {
+      "path": "user/commands/remotecontrol.html",
+      "title": "Command: remotecontrol",
+      "description": "Command: remotecontrol @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : remotecontrol The remotecontrol command allows other applications\nto send commands to an already "
+    },
+    "rename": {
+      "path": "user/commands/rename.html",
+      "title": "Command: rename",
+      "description": "Command: rename @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : rename Usage : rename model-spec [ new-name ]\n[ id new-id ] The command rename changes the name of the s"
+    },
+    "renumber": {
+      "path": "user/commands/renumber.html",
+      "title": "Command: renumber",
+      "description": "Command: renumber @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : renumber Usage : renumber residue-spec [ start N ]\n[ seqstart M ]\n[ relative true | false ] The comman"
+    },
+    "resfit": {
+      "path": "user/commands/resfit.html",
+      "title": "Command: resfit",
+      "description": "Command: resfit @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : resfit Usage : resfit atom-spec map map-model [ residueRange before,after ]\n[ motionFrames M ]\n[ pauseFr"
+    },
+    "rmsd": {
+      "path": "user/commands/rmsd.html",
+      "title": "Command: rmsd",
+      "description": "Command: rmsd @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : rmsd Usage : rmsd atom-spec1 to atom-spec2 The rmsd command measures the\nroot-mean-square deviation (RMSD)"
+    },
+    "rna": {
+      "path": "user/commands/rna.html",
+      "title": "Command: rna",
+      "description": "Command: rna @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : rna Usage : rna operation arguments The rna command builds rough but potentially large-scale\nmodels of sing"
+    },
+    "rock": {
+      "path": "user/commands/rock.html",
+      "title": "Command: rock",
+      "description": "Command: rock @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : rock Usage : rock [ axis [ angle [ frames ]]]\n[ cycle N ]\n[ center point-spec ]\n[ coordinateSystem model-s"
+    },
+    "roll": {
+      "path": "user/commands/roll.html",
+      "title": "Command: roll",
+      "description": "Command: roll @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : roll Usage : roll [ axis [ angle [ frames ]]]\n[ rock N ]\n[ wobble M ]\n[ wobbleAspect fraction ]\n[ center p"
+    },
+    "runscript": {
+      "path": "user/commands/runscript.html",
+      "title": "Command: runscript",
+      "description": "Command: runscript @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : runscript Usage : runscript script arguments The runscript command allows running a Python script (.p"
+    },
+    "save": {
+      "path": "user/commands/save.html",
+      "title": "Command: save",
+      "description": "Command: save @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : save Usage : save filename [ format format-name ]\n[ models model-spec ] other-options Usage : save formats"
+    },
+    "scalebar": {
+      "path": "user/commands/scalebar.html",
+      "title": "Command: scalebar",
+      "description": "Command: scalebar @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : scalebar Usage : scalebar [ length ]\n[ thickness pixel-height ]\n[ xpos x-position ]\n[ ypos y-position "
+    },
+    "segger": {
+      "path": "user/commands/segger.html",
+      "title": "Command: segger",
+      "description": "Command: segger @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : segger The segger command acts on segmentations\ncreated with Segment Map .\nSee also: segmentation , volu"
+    },
+    "segmentation": {
+      "path": "user/commands/segmentation.html",
+      "title": "Command: segmentation",
+      "description": "Command: segmentation @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : segmentation The segmentation command does not calculate map segmentations;\ninstead it shows an ex"
+    },
+    "segmentations": {
+      "path": "user/commands/segmentations.html",
+      "title": "Command: segmentations",
+      "description": "Command: segmentations @media (prefers-color-scheme: dark) {\n        :root {\n          color-scheme: dark;\n        }\n      } Command : segmentations The segmentations command performs functions associ"
+    },
+    "select": {
+      "path": "user/commands/select.html",
+      "title": "Command: select",
+      "description": "Command: select @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : select A selection specifies items (models or their parts) for subsequent operations; the\nselected items"
+    },
+    "seqspec": {
+      "path": "user/commands/seqspec.html",
+      "title": "Sequence Specification (ChimeraX)",
+      "description": "Sequence Specification (ChimeraX) @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command-Line Sequence Specification Certain commands ( blastprotein , modeller , etc. ) allow sp"
+    },
+    "sequence": {
+      "path": "user/commands/sequence.html",
+      "title": "Command: sequence",
+      "description": "Command: sequence @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : sequence The sequence subcommands perform actions related to the Sequence Viewer and associated struct"
+    },
+    "set": {
+      "path": "user/commands/set.html",
+      "title": "Command: set",
+      "description": "Command: set @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : set Usage : set keyword value [ keyword2 value2 ...] The set command sets various global parameters. \nIf gi"
+    },
+    "setattr": {
+      "path": "user/commands/setattr.html",
+      "title": "Command: setattr",
+      "description": "Command: setattr @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : setattr Usage : setattr spec level attr-name value [ create true | false ]\n[ type color | boolean | int"
+    },
+    "shape": {
+      "path": "user/commands/shape.html",
+      "title": "Command: shape",
+      "description": "Command: shape @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : shape Usage : shape shape options The shape command creates a surface model of the specified shape.\nFor g"
+    },
+    "show": {
+      "path": "user/commands/show.html",
+      "title": "Command: show, hide",
+      "description": "Command: show, hide @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : show, hide Usage : show spec [ level | target string ] Usage : hide spec [ level | target string ] T"
+    },
+    "hide": {
+      "path": "user/commands/show.html",
+      "title": "Command: show, hide",
+      "description": "Command: show, hide @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : show, hide Usage : show spec [ level | target string ] Usage : hide spec [ level | target string ] T"
+    },
+    "similarstructures": {
+      "path": "user/commands/similarstructures.html",
+      "title": "Command: similarstructures",
+      "description": "Command: similarstructures @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : similarstructures The similarstructures command performs several functions related to the Sim"
+    },
+    "size": {
+      "path": "user/commands/size.html",
+      "title": "Command: size",
+      "description": "Command: size @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : size Usage : size spec [ atomRadius [+|-] r a | default ]\n[ ballScale [+|-] b ]\n[ stickRadius [+|-] r b ]\n"
+    },
+    "smoothlines": {
+      "path": "user/commands/smoothlines.html",
+      "title": "Command: smoothlines",
+      "description": "Command: smoothlines @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : smoothlines Usage : smoothlines model-spec [ stepFactor fraction ]\n[ iterations N ]\n[ replace true "
+    },
+    "snapshot": {
+      "path": "user/commands/snapshot.html",
+      "title": "Command: snapshot",
+      "description": "Command: snapshot @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : snapshot Usage : snapshot [ directory save-location ] The snapshot command saves an image file just li"
+    },
+    "split": {
+      "path": "user/commands/split.html",
+      "title": "Command: split",
+      "description": "Command: split @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : split Usage : split model-spec [ chains ]\n[ ligands ]\n[ connected ]\n[ atoms atom-spec ] n The split comma"
+    },
+    "stop": {
+      "path": "user/commands/stop.html",
+      "title": "Command: stop",
+      "description": "Command: stop @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : stop Usage : stop The stop command halts all multi-frame motions in progress.\nSee also: move , roll , turn"
+    },
+    "struts": {
+      "path": "user/commands/struts.html",
+      "title": "Command: struts",
+      "description": "Command: struts @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : struts Usage : struts atom-spec [ length maxlen ]\n[ loop maxlooplen ]\n[ fattenRibbon true | false ] othe"
+    },
+    "style": {
+      "path": "user/commands/style.html",
+      "title": "Command: style",
+      "description": "Command: style @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : style Usage : style spec [ sphere | stick | ball ]\n[ ringFill thick | thin | off | on ]\n[ dashes N ] The "
+    },
+    "surface": {
+      "path": "user/commands/surface.html",
+      "title": "Command: surface",
+      "description": "Command: surface @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : surface Usage : surface atom-spec1 [ color color-spec ]\n[ transparency percent ]\n[ enclose atom-spec2 ]"
+    },
+    "swapaa": {
+      "path": "user/commands/swapaa.html",
+      "title": "Command: swapaa",
+      "description": "Command: swapaa @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : swapaa Usage : swapaa residue-spec ( new-type-list | seq : one-letter-codes )\n[ rotLib rotamer-library ]"
+    },
+    "swapna": {
+      "path": "user/commands/swapna.html",
+      "title": "Command: swapna",
+      "description": "Command: swapna @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : swapna Usage : swapna residue-spec new-type-list [ preserve true | false ]\n[ bfactor value ] The swapna "
+    },
+    "sym": {
+      "path": "user/commands/sym.html",
+      "title": "Command: sym",
+      "description": "Command: sym @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : sym The sym command generates symmetry copies of an atomic model.\nSee also: open , close , fitmap , view , "
+    },
+    "symbols": {
+      "path": "user/commands/symbols.html",
+      "title": "Symbols for Image Annotation",
+      "description": "Symbols for Image Annotation @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Symbols for Image Annotation The 2dlabels command\nallows adding 2D text and symbols to the display.\nS"
+    },
+    "taskman": {
+      "path": "user/commands/taskman.html",
+      "title": "Command: taskman",
+      "description": "Command: taskman @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : taskman Usage : taskman list Usage : taskman kill local-ID The taskman list command lists \nany ongoing "
+    },
+    "tile": {
+      "path": "user/commands/tile.html",
+      "title": "Command: tile",
+      "description": "Command: tile @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : tile Usage : tile model-spec [ columns N ]\n[ spacingFactor f ]\n[ viewAll true | false ] Usage : tile off –"
+    },
+    "toolshed": {
+      "path": "user/commands/toolshed.html",
+      "title": "Command: toolshed",
+      "description": "Command: toolshed @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : toolshed The UCSF ChimeraX\nToolshed is a web repository of ChimeraX bundles hosted by the UCSF\nRBVI .\n"
+    },
+    "topography": {
+      "path": "user/commands/topography.html",
+      "title": "Command: topography",
+      "description": "Command: topography @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : topography Usage : topography volume-model [ height h ]\n[ interpolation cubic | none ]\n[ meshType is"
+    },
+    "torsion": {
+      "path": "user/commands/torsion.html",
+      "title": "Command: torsion",
+      "description": "Command: torsion @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : torsion Usage : torsion atom-spec [ angle ]\n[ move large | small ] The torsion command sets the angle d"
+    },
+    "transparency": {
+      "path": "user/commands/transparency.html",
+      "title": "Command: transparency",
+      "description": "Command: transparency @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : transparency Usage : transparency spec percent [ what | target string ] The transparency command s"
+    },
+    "tug": {
+      "path": "user/commands/tug.html",
+      "title": "Command: tug",
+      "description": "Command: tug @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : tug Usage : tug tugatoms toAtoms refatoms [ steps N ]\n[ frames M ]\n[ errorTolerance f ]\n[ forceConstant c ]"
+    },
+    "turn": {
+      "path": "user/commands/turn.html",
+      "title": "Command: turn",
+      "description": "Command: turn @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : turn Usage : turn [ axis [ angle [ frames ]]]\n[ rock N ]\n[ wobble M ]\n[ wobbleAspect fraction ]\n[ center p"
+    },
+    "ui": {
+      "path": "user/commands/ui.html",
+      "title": "Command: ui, functionkey, mousemode",
+      "description": "Command: ui, functionkey, mousemode @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command :\nui, functionkey, mousemode, windowfill The ui command adjusts the user interface (UI"
+    },
+    "functionkey": {
+      "path": "user/commands/ui.html",
+      "title": "Command: ui, functionkey, mousemode",
+      "description": "Command: ui, functionkey, mousemode @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command :\nui, functionkey, mousemode, windowfill The ui command adjusts the user interface (UI"
+    },
+    "mousemode": {
+      "path": "user/commands/ui.html",
+      "title": "Command: ui, functionkey, mousemode",
+      "description": "Command: ui, functionkey, mousemode @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command :\nui, functionkey, mousemode, windowfill The ui command adjusts the user interface (UI"
+    },
+    "undo": {
+      "path": "user/commands/undo.html",
+      "title": "Command: undo, redo",
+      "description": "Command: undo, redo @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : undo, redo Usage : undo Usage : redo The undo and redo commands (and their Edit menu equivalents)\nna"
+    },
+    "redo": {
+      "path": "user/commands/undo.html",
+      "title": "Command: undo, redo",
+      "description": "Command: undo, redo @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : undo, redo Usage : undo Usage : redo The undo and redo commands (and their Edit menu equivalents)\nna"
+    },
+    "unitcell": {
+      "path": "user/commands/unitcell.html",
+      "title": "Command: unitcell",
+      "description": "Command: unitcell @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : unitcell Usage : unitcell atomic-model [ symFromFile true | false ]\n[ spacegroup true | false ]\n[ ncs "
+    },
+    "usage": {
+      "path": "user/commands/usage.html",
+      "title": "Command: usage",
+      "description": "Command: usage @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : usage Usage : usage command The command usage shows a brief description of the specified command and its "
+    },
+    "usageconventions": {
+      "path": "user/commands/usageconventions.html",
+      "title": "Usage Conventions in Command Documentation",
+      "description": "Usage Conventions in Command Documentation @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command Usage Conventions Command help pages have Usage lines \nthat show syntax and opt"
+    },
+    "version": {
+      "path": "user/commands/version.html",
+      "title": "Command: version",
+      "description": "Command: version @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : version Usage : version [ verbose | bundles | packages ] Without keywords, the version command\nreports "
+    },
+    "view": {
+      "path": "user/commands/view.html",
+      "title": "Command: view",
+      "description": "Command: view @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : view The view command can: focus the view on specified items \nor “all” save and restore named views ,\nincl"
+    },
+    "volume": {
+      "path": "user/commands/volume.html",
+      "title": "Command: volume",
+      "description": "Command: volume @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : volume Usage : volume model-spec options The volume command controls the display of density maps and\noth"
+    },
+    "vseries": {
+      "path": "user/commands/vseries.html",
+      "title": "Command: vseries",
+      "description": "Command: vseries @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : vseries Usage : vseries action arguments The vseries command manipulates a volume series ,\nan ordered s"
+    },
+    "wait": {
+      "path": "user/commands/wait.html",
+      "title": "Command: wait",
+      "description": "Command: wait @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : wait Usage : wait [ wait-frames ] The wait command updates the display for a specified number of wait-fram"
+    },
+    "windowsize": {
+      "path": "user/commands/windowsize.html",
+      "title": "Command: windowsize",
+      "description": "Command: windowsize @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : windowsize Usage : windowsize [ width [ height ]] The windowsize command adjusts the graphics window"
+    },
+    "wobble": {
+      "path": "user/commands/wobble.html",
+      "title": "Command: wobble",
+      "description": "Command: wobble @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : wobble Usage : wobble [ axis [ angle [ frames ]]]\n[ cycle N ]\n[ aspect fraction ]\n[ center point-spec ]\n"
+    },
+    "zone": {
+      "path": "user/commands/zone.html",
+      "title": "Command: zone",
+      "description": "Command: zone @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : zone Usage : zone residue-spec [ residueDistance d r ]\n[ labelDistance d l ]\n[ surfaceDistance d s ]\n[ lab"
+    },
+    "zoom": {
+      "path": "user/commands/zoom.html",
+      "title": "Command: zoom",
+      "description": "Command: zoom @media (prefers-color-scheme: dark) { :root { color-scheme: dark; } } Command : zoom Usage : zoom [ factor ]\n[ frames N ]\n[ pixelSize size ] The zoom command adjusts the apparent size of"
+    }
+  },
+  "tutorials": {
+    "bundle_info": {
+      "path": "devel/tutorials/bundle_info.html",
+      "title": "Bundle Information XML Tags — ChimeraX 1.9 documentation",
+      "description": "Bundle Information XML Tags — ChimeraX 1.9 documentation Navigation index modules | ChimeraX 1.9 documentation » Bundle Information XML Tags Bundle Information XML Tags ¶ ChimeraX bundle information i"
+    },
+    "introduction": {
+      "path": "devel/tutorials/introduction.html",
+      "title": "ChimeraX Developer Tutorial — ChimeraX 1.9 documentation",
+      "description": "ChimeraX Developer Tutorial — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » ChimeraX Developer Tutorial ChimeraX Developer Tutorial ¶ UCSF Chimer"
+    },
+    "pyproject": {
+      "path": "devel/tutorials/pyproject.html",
+      "title": "Using pyproject.toml for Bundles — ChimeraX 1.9 documentation",
+      "description": "Using pyproject.toml for Bundles — ChimeraX 1.9 documentation Navigation index modules | ChimeraX 1.9 documentation » Using pyproject.toml for Bundles Using pyproject.toml for Bundles ¶ The python eco"
+    },
+    "tutorial_command": {
+      "path": "devel/tutorials/tutorial_command.html",
+      "title": "Bundle Example: Add a Command — ChimeraX 1.9 documentation",
+      "description": "Bundle Example: Add a Command — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » ChimeraX Developer Tutorial » Bundle Example: Add a Command Bundle "
+    },
+    "tutorial_fetch": {
+      "path": "devel/tutorials/tutorial_fetch.html",
+      "title": "Bundle Example: Fetch from Network Database — ChimeraX 1.9 documentation",
+      "description": "Bundle Example: Fetch from Network Database — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » ChimeraX Developer Tutorial » Bundle Example: Fetch f"
+    },
+    "tutorial_hello": {
+      "path": "devel/tutorials/tutorial_hello.html",
+      "title": "Bundle Example: Hello World — ChimeraX 1.9 documentation",
+      "description": "Bundle Example: Hello World — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » ChimeraX Developer Tutorial » Bundle Example: Hello World Bundle Exam"
+    },
+    "tutorial_presets": {
+      "path": "devel/tutorials/tutorial_presets.html",
+      "title": "Bundle Example: Define Presets — ChimeraX 1.9 documentation",
+      "description": "Bundle Example: Define Presets — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » ChimeraX Developer Tutorial » Bundle Example: Define Presets Bundl"
+    },
+    "tutorial_read_format": {
+      "path": "devel/tutorials/tutorial_read_format.html",
+      "title": "Bundle Example: Read a New File Format — ChimeraX 1.9 documentation",
+      "description": "Bundle Example: Read a New File Format — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » ChimeraX Developer Tutorial » Bundle Example: Read a New F"
+    },
+    "tutorial_save_format": {
+      "path": "devel/tutorials/tutorial_save_format.html",
+      "title": "Bundle Example: Save a New File Format — ChimeraX 1.9 documentation",
+      "description": "Bundle Example: Save a New File Format — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » ChimeraX Developer Tutorial » Bundle Example: Save a New F"
+    },
+    "tutorial_selector": {
+      "path": "devel/tutorials/tutorial_selector.html",
+      "title": "Bundle Example: Define a Chemical Subgroup Selector — ChimeraX 1.9 documentation",
+      "description": "Bundle Example: Define a Chemical Subgroup Selector — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » ChimeraX Developer Tutorial » Bundle Example:"
+    },
+    "tutorial_tool": {
+      "path": "devel/tutorials/tutorial_tool.html",
+      "title": "Bundle Example: Add a Tool — ChimeraX 1.9 documentation",
+      "description": "Bundle Example: Add a Tool — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » ChimeraX Developer Tutorial » Bundle Example: Add a Tool Bundle Exampl"
+    },
+    "tutorial_tool_html": {
+      "path": "devel/tutorials/tutorial_tool_html.html",
+      "title": "Bundle Example: Add an HTML-based Tool — ChimeraX 1.9 documentation",
+      "description": "Bundle Example: Add an HTML-based Tool — ChimeraX 1.9 documentation Navigation index modules | ChimeraX 1.9 documentation » Bundle Example: Add an HTML-based Tool Bundle Example: Add an HTML-based Too"
+    },
+    "tutorial_tool_qt": {
+      "path": "devel/tutorials/tutorial_tool_qt.html",
+      "title": "Bundle Example: Add a Qt-based Tool — ChimeraX 1.9 documentation",
+      "description": "Bundle Example: Add a Qt-based Tool — ChimeraX 1.9 documentation Navigation index modules | ChimeraX 1.9 documentation » Bundle Example: Add a Qt-based Tool Bundle Example: Add a Qt-based Tool ¶ This "
+    }
+  },
+  "modules": {
+    "atomic": {
+      "path": "devel/modules/atomic/atomic.html",
+      "title": "atomic: Atomic structures — ChimeraX 1.9 documentation",
+      "description": "atomic: Atomic structures — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Python Modules » atomic: Atomic structures atomic: Atomic structures ¶ "
+    },
+    "core": {
+      "path": "devel/modules/core/objects.html",
+      "title": "objects: Manage objects — ChimeraX 1.9 documentation",
+      "description": "objects: Manage objects — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Intro to ChimeraX Design » Data Interface » objects: Manage objects objec"
+    },
+    "geometry": {
+      "path": "devel/modules/geometry/geometry.html",
+      "title": "geometry: Points and coordinate systems — ChimeraX 1.9 documentation",
+      "description": "geometry: Points and coordinate systems — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Intro to ChimeraX Design » Data Interface » geometry: Poi"
+    },
+    "graphics": {
+      "path": "devel/modules/graphics/graphics.html",
+      "title": "graphics: Rendering using OpenGL — ChimeraX 1.9 documentation",
+      "description": "graphics: Rendering using OpenGL — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Intro to ChimeraX Design » Data Interface » graphics: Rendering "
+    },
+    "io": {
+      "path": "devel/modules/io/io.html",
+      "title": "io: Generic I/O support — ChimeraX 1.9 documentation",
+      "description": "io: Generic I/O support — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Python Modules » io: Generic I/O support io: Generic I/O support ¶ Conven"
+    },
+    "map": {
+      "path": "devel/modules/map/map.html",
+      "title": "map: Density maps — ChimeraX 1.9 documentation",
+      "description": "map: Density maps — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Python Modules » map: Density maps map: Density maps ¶ 3D image data from elect"
+    },
+    "map_fit": {
+      "path": "devel/modules/map_fit/fitmap.html",
+      "title": "map_fit: Fit atomic models in density maps — ChimeraX 1.9 documentation",
+      "description": "map_fit: Fit atomic models in density maps — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Python Modules » map_fit: Fit atomic models in density"
+    },
+    "mmcif": {
+      "path": "devel/modules/mmcif/mmcif.html",
+      "title": "mmcif: Read and write mmCIF files — ChimeraX 1.9 documentation",
+      "description": "mmcif: Read and write mmCIF files — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Intro to ChimeraX Design » Data Interface » mmcif: Read and wri"
+    },
+    "open_command": {
+      "path": "devel/modules/open_command/open.html",
+      "title": "open_command: Register file openers and database fetch — ChimeraX 1.9 documentation",
+      "description": "open_command: Register file openers and database fetch — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Python Modules » open_command: Register fi"
+    },
+    "preset_mgr": {
+      "path": "devel/modules/preset_mgr/presets.html",
+      "title": "Presets manager: track presets used in Presets menu and preset command — ChimeraX 1.9 documentation",
+      "description": "Presets manager: track presets used in Presets menu and preset command — ChimeraX 1.9 documentation Navigation index modules | ChimeraX 1.9 documentation » Presets manager: track presets used in Prese"
+    },
+    "save_command": {
+      "path": "devel/modules/save_command/save.html",
+      "title": "save_command: Register file saving — ChimeraX 1.9 documentation",
+      "description": "save_command: Register file saving — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Python Modules » save_command: Register file saving save_comma"
+    },
+    "scheme_mgr": {
+      "path": "devel/modules/scheme_mgr/scheme_mgr.html",
+      "title": "html_scheme — ChimeraX 1.9 documentation",
+      "description": "html_scheme — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Python Modules » html_scheme html_scheme ¶ Qt QWebEngineUrlScheme https://doc.qt.io/q"
+    },
+    "segment": {
+      "path": "devel/modules/segment/segment.html",
+      "title": "segment: Segmentations of density maps — ChimeraX 1.9 documentation",
+      "description": "segment: Segmentations of density maps — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Python Modules » segment: Segmentations of density maps se"
+    },
+    "surface": {
+      "path": "devel/modules/surface/surface.html",
+      "title": "surface: Triangulated surface calculations — ChimeraX 1.9 documentation",
+      "description": "surface: Triangulated surface calculations — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Python Modules » surface: Triangulated surface calcula"
+    },
+    "toolbar": {
+      "path": "devel/modules/toolbar/toolbar.html",
+      "title": "toolbar — ChimeraX 1.9 documentation",
+      "description": "toolbar — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Python Modules » toolbar toolbar ¶ The toolbar manager uses the manager/provider (TODO: l"
+    },
+    "ui": {
+      "path": "devel/modules/ui/gui.html",
+      "title": "gui: Main ChimeraX graphical user interface — ChimeraX 1.9 documentation",
+      "description": "gui: Main ChimeraX graphical user interface — ChimeraX 1.9 documentation Navigation index modules | next | previous | ChimeraX 1.9 documentation » Intro to ChimeraX Design » User Interface » gui: Main"
+    }
+  },
+  "keywords": {
+    "about": [
+      "user/commands/info.html"
+    ],
+    "action": [
+      "user/commands/movie.html",
+      "user/commands/vseries.html"
+    ],
+    "actions": [
+      "user/commands/sequence.html"
+    ],
+    "acts": [
+      "user/commands/segger.html"
+    ],
+    "addcharge": [
+      "user/commands/addcharge.html"
+    ],
+    "addh": [
+      "user/commands/addh.html"
+    ],
+    "adding": [
+      "user/commands/symbols.html"
+    ],
+    "additional": [
+      "user/commands/graphics.html"
+    ],
+    "adds": [
+      "user/commands/2dlabels.html",
+      "user/commands/marker.html"
+    ],
+    "adjusts": [
+      "user/commands/windowsize.html",
+      "user/commands/ui.html",
+      "user/commands/zoom.html"
+    ],
+    "after": [
+      "user/commands/resfit.html"
+    ],
+    "alias": [
+      "user/commands/alias.html"
+    ],
+    "align": [
+      "user/commands/align.html"
+    ],
+    "allow": [
+      "user/commands/atomspec.html",
+      "user/commands/seqspec.html"
+    ],
+    "allows": [
+      "user/commands/runscript.html",
+      "user/commands/symbols.html",
+      "user/commands/remotecontrol.html"
+    ],
+    "alphafold": [
+      "user/commands/alphafold.html"
+    ],
+    "already": [
+      "user/commands/remotecontrol.html"
+    ],
+    "also": [
+      "user/commands/segger.html",
+      "user/commands/stop.html",
+      "user/commands/sym.html",
+      "user/commands/exit.html"
+    ],
+    "alternate": [
+      "user/commands/altlocs.html"
+    ],
+    "altlocs": [
+      "user/commands/altlocs.html"
+    ],
+    "angl": [
+      "user/commands/camera.html"
+    ],
+    "angle": [
+      "user/commands/angle.html",
+      "user/commands/torsion.html",
+      "user/commands/roll.html",
+      "user/commands/turn.html",
+      "user/commands/camera.html",
+      "user/commands/wobble.html",
+      "user/commands/rock.html"
+    ],
+    "annotation": [
+      "user/commands/symbols.html"
+    ],
+    "apparent": [
+      "user/commands/zoom.html"
+    ],
+    "applications": [
+      "user/commands/remotecontrol.html"
+    ],
+    "apply": [
+      "user/commands/color.html"
+    ],
+    "area": [
+      "user/commands/interfaces.html"
+    ],
+    "areacutoff": [
+      "user/commands/interfaces.html"
+    ],
+    "arguments": [
+      "user/commands/measure.html",
+      "user/commands/runscript.html",
+      "user/commands/rna.html",
+      "user/commands/vseries.html"
+    ],
+    "arrows": [
+      "user/commands/2dlabels.html"
+    ],
+    "artificial": [
+      "user/commands/alphafold.html",
+      "user/commands/esmfold.html"
+    ],
+    "aspect": [
+      "user/commands/wobble.html"
+    ],
+    "assembles": [
+      "user/commands/movie.html"
+    ],
+    "assigns": [
+      "user/commands/defattr.html"
+    ],
+    "associ": [
+      "user/commands/segmentations.html"
+    ],
+    "associated": [
+      "user/commands/sequence.html"
+    ],
+    "atom": [
+      "user/commands/angle.html",
+      "user/commands/changechains.html",
+      "user/commands/hbonds.html",
+      "user/commands/rmsd.html",
+      "user/commands/split.html",
+      "user/commands/mlp.html",
+      "user/commands/dssp.html",
+      "user/commands/bond.html",
+      "user/commands/interfaces.html",
+      "user/commands/label.html"
+    ],
+    "atomic": [
+      "user/commands/alphafold.html",
+      "user/commands/crystalcontacts.html",
+      "user/commands/unitcell.html",
+      "devel/modules/atomic/atomic.html",
+      "devel/modules/map_fit/fitmap.html",
+      "user/commands/altlocs.html",
+      "user/commands/sym.html",
+      "user/commands/define.html",
+      "user/commands/dockprep.html"
+    ],
+    "atomradius": [
+      "user/commands/size.html"
+    ],
+    "atoms": [
+      "user/commands/delete.html",
+      "user/commands/move.html",
+      "user/commands/split.html"
+    ],
+    "atomspec": [
+      "user/commands/atomspec.html",
+      "user/commands/atomspec-diffsum.html"
+    ],
+    "attachedhyds": [
+      "user/commands/delete.html"
+    ],
+    "attr": [
+      "user/commands/setattr.html",
+      "user/commands/defattr.html"
+    ],
+    "attrib": [
+      "user/commands/defattr.html"
+    ],
+    "available": [
+      "user/commands/palette.html"
+    ],
+    "axis": [
+      "user/commands/roll.html",
+      "user/commands/turn.html",
+      "user/commands/wobble.html",
+      "user/commands/define.html",
+      "user/commands/move.html",
+      "user/commands/rock.html"
+    ],
+    "back": [
+      "user/commands/clip.html"
+    ],
+    "ball": [
+      "user/commands/style.html"
+    ],
+    "ballscale": [
+      "user/commands/size.html"
+    ],
+    "basearea": [
+      "user/commands/bumps.html"
+    ],
+    "based": [
+      "devel/tutorials/tutorial_tool_qt.html",
+      "user/commands/define.html",
+      "devel/tutorials/tutorial_tool_html.html"
+    ],
+    "before": [
+      "user/commands/resfit.html"
+    ],
+    "between": [
+      "user/commands/meeting.html"
+    ],
+    "bfactor": [
+      "user/commands/swapna.html"
+    ],
+    "biom": [
+      "user/commands/alphafold.html"
+    ],
+    "blastprotein": [
+      "user/commands/blastprotein.html",
+      "user/commands/seqspec.html"
+    ],
+    "bond": [
+      "user/commands/bond.html"
+    ],
+    "bonds": [
+      "user/commands/delete.html"
+    ],
+    "boolean": [
+      "user/commands/setattr.html"
+    ],
+    "both": [
+      "user/commands/clashes.html",
+      "user/commands/hbonds.html"
+    ],
+    "brasseur": [
+      "user/commands/mlp.html"
+    ],
+    "brief": [
+      "user/commands/usage.html"
+    ],
+    "bring": [
+      "user/commands/matchmaker.html"
+    ],
+    "buckingham": [
+      "user/commands/mlp.html"
+    ],
+    "build": [
+      "user/commands/build.html"
+    ],
+    "builds": [
+      "user/commands/rna.html"
+    ],
+    "built": [
+      "user/commands/colortables.html"
+    ],
+    "builtins": [
+      "user/commands/name.html"
+    ],
+    "bumps": [
+      "user/commands/bumps.html"
+    ],
+    "bundle": [
+      "devel/tutorials/bundle_info.html",
+      "devel/tutorials/tutorial_presets.html",
+      "devel/tutorials/tutorial_hello.html",
+      "devel/tutorials/tutorial_save_format.html",
+      "devel/tutorials/tutorial_fetch.html",
+      "devel/tutorials/tutorial_command.html",
+      "devel/tutorials/tutorial_tool_html.html",
+      "devel/tutorials/tutorial_tool_qt.html",
+      "devel/tutorials/tutorial_selector.html",
+      "devel/tutorials/tutorial_tool.html"
+    ],
+    "bundles": [
+      "user/commands/toolshed.html",
+      "devel/tutorials/pyproject.html",
+      "user/commands/version.html"
+    ],
+    "butt": [
+      "user/commands/buttonpanel.html"
+    ],
+    "buttonpanel": [
+      "user/commands/buttonpanel.html"
+    ],
+    "cage": [
+      "user/commands/hkcage.html"
+    ],
+    "calculate": [
+      "user/commands/segmentation.html"
+    ],
+    "calculates": [
+      "user/commands/define.html"
+    ],
+    "calculations": [
+      "user/commands/measure.html",
+      "devel/modules/surface/surface.html"
+    ],
+    "camera": [
+      "user/commands/camera.html"
+    ],
+    "captures": [
+      "user/commands/movie.html"
+    ],
+    "cartoon": [
+      "user/commands/cartoon.html"
+    ],
+    "category": [
+      "user/commands/preset.html"
+    ],
+    "center": [
+      "user/commands/roll.html",
+      "user/commands/turn.html",
+      "user/commands/wobble.html",
+      "user/commands/bumps.html",
+      "user/commands/rock.html"
+    ],
+    "centerofview": [
+      "user/commands/cofr.html"
+    ],
+    "certain": [
+      "user/commands/seqspec.html"
+    ],
+    "chain": [
+      "user/commands/colortables.html",
+      "user/commands/foldseek.html"
+    ],
+    "chains": [
+      "user/commands/split.html"
+    ],
+    "changechains": [
+      "user/commands/changechains.html"
+    ],
+    "changes": [
+      "user/commands/cd.html",
+      "user/commands/rename.html"
+    ],
+    "character": [
+      "user/commands/log.html"
+    ],
+    "chemical": [
+      "devel/tutorials/tutorial_selector.html"
+    ],
+    "chimera": [
+      "user/commands/atomspec-diffsum.html"
+    ],
+    "clashes": [
+      "user/commands/clashes.html"
+    ],
+    "clip": [
+      "user/commands/clip.html"
+    ],
+    "close": [
+      "user/commands/sym.html",
+      "user/commands/exit.html",
+      "user/commands/combine.html",
+      "user/commands/close.html"
+    ],
+    "codes": [
+      "user/commands/swapaa.html"
+    ],
+    "cofr": [
+      "user/commands/cofr.html"
+    ],
+    "color": [
+      "user/commands/info.html",
+      "user/commands/hbonds.html",
+      "user/commands/runscript.html",
+      "user/commands/mlp.html",
+      "user/commands/tug.html",
+      "user/commands/transparency.html",
+      "user/commands/usageconventions.html",
+      "user/commands/surface.html",
+      "user/commands/rename.html",
+      "user/commands/renumber.html"
+    ],
+    "coloring": [
+      "user/commands/colortables.html",
+      "user/commands/color.html"
+    ],
+    "colornames": [
+      "user/commands/colornames.html"
+    ],
+    "colors": [
+      "user/commands/colornames.html",
+      "user/commands/palettes.html",
+      "user/commands/colortables.html",
+      "user/commands/key.html"
+    ],
+    "colortables": [
+      "user/commands/colortables.html"
+    ],
+    "columns": [
+      "user/commands/tile.html",
+      "user/commands/buttonpanel.html"
+    ],
+    "combination": [
+      "user/commands/preset.html"
+    ],
+    "combine": [
+      "user/commands/combine.html"
+    ],
+    "comma": [
+      "user/commands/split.html"
+    ],
+    "comman": [
+      "user/commands/renumber.html"
+    ],
+    "comparative": [
+      "user/commands/modeller.html"
+    ],
+    "computess": [
+      "user/commands/coordset.html"
+    ],
+    "connected": [
+      "user/commands/split.html"
+    ],
+    "contacts": [
+      "user/commands/clashes.html"
+    ],
+    "contains": [
+      "user/commands/altlocs.html"
+    ],
+    "controls": [
+      "user/commands/volume.html"
+    ],
+    "conventions": [
+      "user/commands/usageconventions.html"
+    ],
+    "convergence": [
+      "user/commands/camera.html"
+    ],
+    "coordinate": [
+      "devel/modules/geometry/geometry.html"
+    ],
+    "coordinates": [
+      "user/commands/define.html",
+      "user/commands/getcrd.html"
+    ],
+    "coordinatesystem": [
+      "user/commands/move.html",
+      "user/commands/rock.html"
+    ],
+    "coordset": [
+      "user/commands/coordset.html"
+    ],
+    "coordsets": [
+      "user/commands/open.html"
+    ],
+    "copies": [
+      "user/commands/crystalcontacts.html",
+      "user/commands/sym.html"
+    ],
+    "core": [
+      "devel/modules/core/objects.html"
+    ],
+    "correspond": [
+      "user/commands/build.html"
+    ],
+    "coulomb": [
+      "user/commands/palettes.html"
+    ],
+    "coulombic": [
+      "user/commands/coulombic.html"
+    ],
+    "create": [
+      "user/commands/setattr.html"
+    ],
+    "created": [
+      "user/commands/segger.html"
+    ],
+    "creates": [
+      "user/commands/shape.html"
+    ],
+    "cross": [
+      "user/commands/clashes.html",
+      "user/commands/hbonds.html"
+    ],
+    "crossfade": [
+      "user/commands/crossfade.html"
+    ],
+    "crosslinks": [
+      "user/commands/crosslinks.html"
+    ],
+    "crystalcontacts": [
+      "user/commands/crystalcontacts.html"
+    ],
+    "cubic": [
+      "user/commands/topography.html"
+    ],
+    "current": [
+      "user/commands/cd.html",
+      "user/commands/changechains.html",
+      "user/commands/crossfade.html",
+      "user/commands/pwd.html"
+    ],
+    "cutoffdistance": [
+      "user/commands/align.html"
+    ],
+    "cycle": [
+      "user/commands/wobble.html",
+      "user/commands/rock.html"
+    ],
+    "dark": [
+      "user/commands/info.html",
+      "user/commands/hbonds.html",
+      "user/commands/runscript.html",
+      "user/commands/mlp.html",
+      "user/commands/tug.html",
+      "user/commands/transparency.html",
+      "user/commands/usageconventions.html",
+      "user/commands/surface.html",
+      "user/commands/rename.html",
+      "user/commands/renumber.html"
+    ],
+    "dashes": [
+      "user/commands/crosslinks.html",
+      "user/commands/style.html"
+    ],
+    "database": [
+      "user/commands/blastprotein.html",
+      "user/commands/foldseek.html",
+      "devel/tutorials/tutorial_fetch.html",
+      "devel/modules/open_command/open.html"
+    ],
+    "deep": [
+      "user/commands/mutationscores.html"
+    ],
+    "defattr": [
+      "user/commands/defattr.html"
+    ],
+    "default": [
+      "user/commands/label.html",
+      "user/commands/size.html",
+      "user/commands/cartoon.html"
+    ],
+    "defaultscore": [
+      "user/commands/modelcif.html"
+    ],
+    "define": [
+      "devel/tutorials/tutorial_presets.html",
+      "user/commands/define.html",
+      "devel/tutorials/tutorial_selector.html"
+    ],
+    "delete": [
+      "user/commands/alias.html",
+      "user/commands/delete.html"
+    ],
+    "delsolvent": [
+      "user/commands/dockprep.html"
+    ],
+    "density": [
+      "devel/modules/map_fit/fitmap.html",
+      "user/commands/molmap.html",
+      "user/commands/volume.html",
+      "devel/modules/map/map.html",
+      "devel/modules/segment/segment.html"
+    ],
+    "depending": [
+      "user/commands/color.html"
+    ],
+    "description": [
+      "user/commands/usage.html"
+    ],
+    "detailed": [
+      "user/commands/graphics.html"
+    ],
+    "developer": [
+      "devel/tutorials/introduction.html"
+    ],
+    "deviation": [
+      "user/commands/rmsd.html"
+    ],
+    "device": [
+      "user/commands/device.html"
+    ],
+    "dielectric": [
+      "user/commands/coulombic.html"
+    ],
+    "different": [
+      "user/commands/color.html",
+      "user/commands/meeting.html"
+    ],
+    "diffsum": [
+      "user/commands/atomspec-diffsum.html"
+    ],
+    "directory": [
+      "user/commands/cd.html",
+      "user/commands/snapshot.html",
+      "user/commands/pwd.html"
+    ],
+    "disp": [
+      "user/commands/2dlabels.html"
+    ],
+    "display": [
+      "user/commands/preset.html",
+      "user/commands/distance.html",
+      "user/commands/volume.html",
+      "user/commands/symbols.html",
+      "user/commands/crossfade.html",
+      "user/commands/wait.html"
+    ],
+    "displays": [
+      "user/commands/define.html"
+    ],
+    "distance": [
+      "user/commands/crystalcontacts.html",
+      "user/commands/move.html",
+      "user/commands/distance.html",
+      "user/commands/camera.html"
+    ],
+    "distdep": [
+      "user/commands/coulombic.html"
+    ],
+    "dockprep": [
+      "user/commands/dockprep.html"
+    ],
+    "documentation": [
+      "devel/tutorials/bundle_info.html",
+      "devel/tutorials/tutorial_hello.html",
+      "devel/modules/atomic/atomic.html",
+      "devel/modules/preset_mgr/presets.html",
+      "devel/modules/save_command/save.html",
+      "devel/modules/geometry/geometry.html",
+      "devel/tutorials/introduction.html",
+      "user/commands/usageconventions.html",
+      "devel/modules/surface/surface.html",
+      "devel/modules/segment/segment.html"
+    ],
+    "does": [
+      "user/commands/segmentation.html"
+    ],
+    "dssp": [
+      "user/commands/dssp.html"
+    ],
+    "dubost": [
+      "user/commands/mlp.html"
+    ],
+    "each": [
+      "user/commands/align.html"
+    ],
+    "edgeradius": [
+      "user/commands/hkcage.html"
+    ],
+    "edit": [
+      "user/commands/undo.html"
+    ],
+    "element": [
+      "user/commands/colortables.html"
+    ],
+    "enclose": [
+      "user/commands/surface.html"
+    ],
+    "energycutoff": [
+      "user/commands/dssp.html"
+    ],
+    "equal": [
+      "user/commands/key.html"
+    ],
+    "equivalents": [
+      "user/commands/undo.html"
+    ],
+    "errortolerance": [
+      "user/commands/tug.html"
+    ],
+    "esmfold": [
+      "user/commands/esmfold.html"
+    ],
+    "evolutionary": [
+      "user/commands/esmfold.html"
+    ],
+    "example": [
+      "devel/tutorials/tutorial_presets.html",
+      "devel/tutorials/tutorial_hello.html",
+      "devel/tutorials/tutorial_save_format.html",
+      "devel/tutorials/tutorial_fetch.html",
+      "devel/tutorials/tutorial_command.html",
+      "devel/tutorials/tutorial_tool_html.html",
+      "devel/tutorials/tutorial_tool_qt.html",
+      "devel/tutorials/tutorial_selector.html",
+      "devel/tutorials/tutorial_tool.html",
+      "devel/tutorials/tutorial_read_format.html"
+    ],
+    "exit": [
+      "user/commands/exit.html"
+    ],
+    "exits": [
+      "user/commands/exit.html"
+    ],
+    "eyeseparation": [
+      "user/commands/camera.html"
+    ],
+    "factor": [
+      "user/commands/cartoon.html",
+      "user/commands/zoom.html"
+    ],
+    "fades": [
+      "user/commands/crossfade.html"
+    ],
+    "false": [
+      "user/commands/crystalcontacts.html",
+      "user/commands/hbonds.html",
+      "user/commands/distance.html",
+      "user/commands/dssp.html",
+      "user/commands/bond.html",
+      "user/commands/delete.html",
+      "user/commands/unitcell.html",
+      "user/commands/defattr.html",
+      "user/commands/open.html",
+      "user/commands/setattr.html"
+    ],
+    "fattenribbon": [
+      "user/commands/struts.html"
+    ],
+    "fauchere": [
+      "user/commands/mlp.html"
+    ],
+    "fetch": [
+      "devel/tutorials/tutorial_fetch.html",
+      "devel/modules/open_command/open.html"
+    ],
+    "field": [
+      "user/commands/camera.html"
+    ],
+    "fieldofview": [
+      "user/commands/camera.html"
+    ],
+    "file": [
+      "user/commands/info.html",
+      "user/commands/defattr.html",
+      "devel/modules/save_command/save.html",
+      "devel/tutorials/tutorial_save_format.html",
+      "user/commands/snapshot.html",
+      "devel/modules/open_command/open.html",
+      "devel/tutorials/tutorial_read_format.html"
+    ],
+    "filen": [
+      "user/commands/modelcif.html"
+    ],
+    "filename": [
+      "user/commands/open.html",
+      "user/commands/save.html"
+    ],
+    "files": [
+      "devel/modules/mmcif/mmcif.html"
+    ],
+    "fill": [
+      "user/commands/buttonpanel.html"
+    ],
+    "fitmap": [
+      "user/commands/fitmap.html",
+      "user/commands/sym.html"
+    ],
+    "fixed": [
+      "user/commands/cofr.html",
+      "user/commands/label.html"
+    ],
+    "focus": [
+      "user/commands/view.html"
+    ],
+    "foldseek": [
+      "user/commands/foldseek.html"
+    ],
+    "forceconstant": [
+      "user/commands/tug.html"
+    ],
+    "format": [
+      "devel/tutorials/tutorial_save_format.html",
+      "user/commands/save.html",
+      "devel/tutorials/tutorial_read_format.html"
+    ],
+    "formats": [
+      "user/commands/save.html"
+    ],
+    "fraction": [
+      "user/commands/smoothlines.html",
+      "user/commands/roll.html",
+      "user/commands/turn.html",
+      "user/commands/wobble.html"
+    ],
+    "fram": [
+      "user/commands/wait.html"
+    ],
+    "frame": [
+      "user/commands/coordset.html",
+      "user/commands/stop.html"
+    ],
+    "frames": [
+      "user/commands/tug.html",
+      "user/commands/roll.html",
+      "user/commands/turn.html",
+      "user/commands/zoom.html",
+      "user/commands/fly.html",
+      "user/commands/crossfade.html",
+      "user/commands/wobble.html",
+      "user/commands/perframe.html",
+      "user/commands/morph.html",
+      "user/commands/wait.html"
+    ],
+    "framesn": [
+      "user/commands/fly.html"
+    ],
+    "front": [
+      "user/commands/clip.html"
+    ],
+    "frontcenter": [
+      "user/commands/cofr.html"
+    ],
+    "frozen": [
+      "user/commands/name.html"
+    ],
+    "functionkey": [
+      "user/commands/ui.html"
+    ],
+    "functions": [
+      "user/commands/similarstructures.html",
+      "user/commands/segmentations.html"
+    ],
+    "gasteiger": [
+      "user/commands/addcharge.html"
+    ],
+    "generate": [
+      "user/commands/build.html"
+    ],
+    "generates": [
+      "user/commands/sym.html",
+      "user/commands/molmap.html"
+    ],
+    "generic": [
+      "devel/modules/io/io.html"
+    ],
+    "geometric": [
+      "user/commands/define.html"
+    ],
+    "geometry": [
+      "devel/modules/geometry/geometry.html"
+    ],
+    "getcrd": [
+      "user/commands/getcrd.html"
+    ],
+    "global": [
+      "user/commands/fitmap.html",
+      "user/commands/set.html"
+    ],
+    "graphical": [
+      "user/commands/graphics.html",
+      "devel/modules/ui/gui.html"
+    ],
+    "graphics": [
+      "user/commands/windowsize.html",
+      "devel/modules/graphics/graphics.html",
+      "user/commands/graphics.html"
+    ],
+    "halts": [
+      "user/commands/stop.html"
+    ],
+    "hbond": [
+      "user/commands/addh.html"
+    ],
+    "hbonds": [
+      "user/commands/hbonds.html"
+    ],
+    "height": [
+      "user/commands/label.html",
+      "user/commands/windowsize.html",
+      "user/commands/topography.html",
+      "user/commands/log.html",
+      "user/commands/scalebar.html",
+      "user/commands/key.html",
+      "user/commands/bumps.html"
+    ],
+    "hello": [
+      "devel/tutorials/tutorial_hello.html"
+    ],
+    "help": [
+      "user/commands/help.html",
+      "user/commands/usageconventions.html"
+    ],
+    "hide": [
+      "user/commands/show.html"
+    ],
+    "hidemodels": [
+      "user/commands/morph.html"
+    ],
+    "hkcage": [
+      "user/commands/hkcage.html"
+    ],
+    "holdsteady": [
+      "user/commands/coordset.html"
+    ],
+    "hosted": [
+      "user/commands/toolshed.html"
+    ],
+    "identifier": [
+      "user/commands/open.html"
+    ],
+    "image": [
+      "user/commands/snapshot.html",
+      "user/commands/movie.html",
+      "user/commands/crossfade.html",
+      "user/commands/symbols.html"
+    ],
+    "incl": [
+      "user/commands/view.html"
+    ],
+    "info": [
+      "user/commands/info.html"
+    ],
+    "information": [
+      "devel/tutorials/bundle_info.html",
+      "user/commands/info.html"
+    ],
+    "inisolation": [
+      "user/commands/addh.html"
+    ],
+    "initial": [
+      "user/commands/colortables.html"
+    ],
+    "inmap": [
+      "user/commands/fitmap.html"
+    ],
+    "input": [
+      "user/commands/combine.html"
+    ],
+    "instances": [
+      "user/commands/meeting.html"
+    ],
+    "instead": [
+      "user/commands/segmentation.html"
+    ],
+    "intelligence": [
+      "user/commands/alphafold.html",
+      "user/commands/esmfold.html"
+    ],
+    "interfa": [
+      "user/commands/interfaces.html"
+    ],
+    "interface": [
+      "user/commands/ui.html",
+      "user/commands/interfaces.html",
+      "devel/modules/ui/gui.html"
+    ],
+    "interfaces": [
+      "user/commands/interfaces.html"
+    ],
+    "internal": [
+      "user/commands/alias.html"
+    ],
+    "interpolation": [
+      "user/commands/topography.html"
+    ],
+    "interval": [
+      "user/commands/perframe.html"
+    ],
+    "introduction": [
+      "devel/tutorials/introduction.html"
+    ],
+    "items": [
+      "user/commands/atomspec.html",
+      "user/commands/select.html",
+      "user/commands/color.html",
+      "user/commands/view.html"
+    ],
+    "iterations": [
+      "user/commands/smoothlines.html"
+    ],
+    "jsonoutputpath": [
+      "user/commands/modelcif.html"
+    ],
+    "just": [
+      "user/commands/snapshot.html"
+    ],
+    "keyword": [
+      "user/commands/set.html"
+    ],
+    "keywords": [
+      "user/commands/version.html"
+    ],
+    "kill": [
+      "user/commands/taskman.html"
+    ],
+    "kvfinder": [
+      "user/commands/kvfinder.html"
+    ],
+    "label": [
+      "user/commands/label.html"
+    ],
+    "labeldistance": [
+      "user/commands/zone.html"
+    ],
+    "labels": [
+      "user/commands/key.html"
+    ],
+    "large": [
+      "user/commands/angle.html",
+      "user/commands/torsion.html",
+      "user/commands/rna.html"
+    ],
+    "length": [
+      "user/commands/cofr.html",
+      "user/commands/scalebar.html",
+      "user/commands/bond.html",
+      "user/commands/struts.html"
+    ],
+    "letter": [
+      "user/commands/swapaa.html"
+    ],
+    "level": [
+      "user/commands/label.html",
+      "user/commands/info.html",
+      "user/commands/setattr.html",
+      "user/commands/show.html",
+      "user/commands/align.html"
+    ],
+    "library": [
+      "user/commands/swapaa.html"
+    ],
+    "licensekey": [
+      "user/commands/modeller.html"
+    ],
+    "ligands": [
+      "user/commands/split.html"
+    ],
+    "light": [
+      "user/commands/material.html"
+    ],
+    "lighting": [
+      "user/commands/lighting.html"
+    ],
+    "line": [
+      "user/commands/atomspec.html",
+      "user/commands/colornames.html",
+      "user/commands/pointspec.html",
+      "user/commands/seqspec.html"
+    ],
+    "lines": [
+      "user/commands/usageconventions.html"
+    ],
+    "links": [
+      "user/commands/marker.html"
+    ],
+    "list": [
+      "user/commands/addcharge.html",
+      "user/commands/changechains.html",
+      "user/commands/alias.html",
+      "user/commands/name.html",
+      "user/commands/swapaa.html",
+      "user/commands/taskman.html",
+      "user/commands/palette.html",
+      "user/commands/swapna.html"
+    ],
+    "lists": [
+      "user/commands/altlocs.html",
+      "user/commands/taskman.html",
+      "user/commands/palette.html"
+    ],
+    "local": [
+      "user/commands/taskman.html"
+    ],
+    "location": [
+      "user/commands/snapshot.html"
+    ],
+    "locations": [
+      "user/commands/altlocs.html"
+    ],
+    "loop": [
+      "user/commands/mseries.html",
+      "user/commands/struts.html"
+    ],
+    "main": [
+      "devel/modules/ui/gui.html"
+    ],
+    "manage": [
+      "devel/modules/core/objects.html"
+    ],
+    "manager": [
+      "devel/modules/preset_mgr/presets.html"
+    ],
+    "manages": [
+      "user/commands/altlocs.html"
+    ],
+    "manipulates": [
+      "user/commands/vseries.html"
+    ],
+    "many": [
+      "user/commands/pointspec.html"
+    ],
+    "maps": [
+      "user/commands/volume.html",
+      "devel/modules/map/map.html",
+      "devel/modules/map_fit/fitmap.html",
+      "devel/modules/segment/segment.html"
+    ],
+    "marker": [
+      "user/commands/marker.html"
+    ],
+    "markers": [
+      "user/commands/marker.html"
+    ],
+    "marki": [
+      "user/commands/marker.html"
+    ],
+    "master": [
+      "user/commands/fly.html"
+    ],
+    "matchatoms": [
+      "user/commands/align.html"
+    ],
+    "matchmaker": [
+      "user/commands/matchmaker.html"
+    ],
+    "matchstruct": [
+      "user/commands/matchmaker.html"
+    ],
+    "material": [
+      "user/commands/material.html"
+    ],
+    "maxdista": [
+      "user/commands/mlp.html"
+    ],
+    "maxlen": [
+      "user/commands/struts.html"
+    ],
+    "maxlooplen": [
+      "user/commands/struts.html"
+    ],
+    "maxmodels": [
+      "user/commands/open.html"
+    ],
+    "mcopy": [
+      "user/commands/mcopy.html"
+    ],
+    "mean": [
+      "user/commands/rmsd.html"
+    ],
+    "measure": [
+      "user/commands/measure.html"
+    ],
+    "measures": [
+      "user/commands/rmsd.html"
+    ],
+    "media": [
+      "user/commands/info.html",
+      "user/commands/hbonds.html",
+      "user/commands/runscript.html",
+      "user/commands/mlp.html",
+      "user/commands/tug.html",
+      "user/commands/transparency.html",
+      "user/commands/usageconventions.html",
+      "user/commands/surface.html",
+      "user/commands/rename.html",
+      "user/commands/renumber.html"
+    ],
+    "meeting": [
+      "user/commands/meeting.html"
+    ],
+    "memorize": [
+      "user/commands/dockprep.html"
+    ],
+    "menu": [
+      "user/commands/undo.html",
+      "devel/modules/preset_mgr/presets.html"
+    ],
+    "meshtype": [
+      "user/commands/topography.html"
+    ],
+    "metaldist": [
+      "user/commands/addh.html"
+    ],
+    "method": [
+      "user/commands/alphafold.html",
+      "user/commands/esmfold.html",
+      "user/commands/addcharge.html",
+      "user/commands/mlp.html"
+    ],
+    "metricname": [
+      "user/commands/modelcif.html"
+    ],
+    "minhelixlen": [
+      "user/commands/dssp.html"
+    ],
+    "minstrandlen": [
+      "user/commands/dssp.html"
+    ],
+    "mmaker": [
+      "user/commands/matchmaker.html"
+    ],
+    "mmcif": [
+      "devel/modules/mmcif/mmcif.html"
+    ],
+    "mode": [
+      "user/commands/nucleotides.html",
+      "user/commands/camera.html"
+    ],
+    "model": [
+      "user/commands/crystalcontacts.html",
+      "user/commands/info.html",
+      "user/commands/fitmap.html",
+      "user/commands/split.html",
+      "user/commands/kvfinder.html",
+      "user/commands/unitcell.html",
+      "user/commands/getcrd.html",
+      "user/commands/shape.html",
+      "user/commands/combine.html",
+      "user/commands/volume.html"
+    ],
+    "modelcif": [
+      "user/commands/modelcif.html"
+    ],
+    "modelid": [
+      "user/commands/combine.html"
+    ],
+    "modeling": [
+      "user/commands/esmfold.html"
+    ],
+    "modeller": [
+      "user/commands/seqspec.html",
+      "user/commands/modeller.html"
+    ],
+    "models": [
+      "user/commands/select.html",
+      "devel/modules/map_fit/fitmap.html",
+      "user/commands/rna.html",
+      "user/commands/save.html",
+      "user/commands/move.html"
+    ],
+    "modes": [
+      "user/commands/device.html"
+    ],
+    "modifies": [
+      "user/commands/marker.html"
+    ],
+    "molmap": [
+      "user/commands/molmap.html"
+    ],
+    "monitor": [
+      "user/commands/distance.html"
+    ],
+    "more": [
+      "user/commands/meeting.html"
+    ],
+    "morph": [
+      "user/commands/morph.html"
+    ],
+    "most": [
+      "user/commands/atomspec.html"
+    ],
+    "motionframes": [
+      "user/commands/resfit.html"
+    ],
+    "motions": [
+      "user/commands/stop.html"
+    ],
+    "mousemode": [
+      "user/commands/ui.html"
+    ],
+    "move": [
+      "user/commands/angle.html",
+      "user/commands/torsion.html",
+      "user/commands/stop.html",
+      "user/commands/move.html",
+      "user/commands/align.html"
+    ],
+    "movie": [
+      "user/commands/movie.html"
+    ],
+    "mseries": [
+      "user/commands/mseries.html"
+    ],
+    "multi": [
+      "user/commands/stop.html"
+    ],
+    "mutational": [
+      "user/commands/mutationscores.html"
+    ],
+    "mutationscores": [
+      "user/commands/mutationscores.html"
+    ],
+    "name": [
+      "user/commands/preset.html",
+      "user/commands/delete.html",
+      "user/commands/rename.html",
+      "user/commands/alias.html",
+      "user/commands/setattr.html",
+      "user/commands/name.html",
+      "user/commands/modelcif.html",
+      "user/commands/save.html"
+    ],
+    "named": [
+      "user/commands/view.html"
+    ],
+    "names": [
+      "user/commands/palette.html"
+    ],
+    "near": [
+      "user/commands/clip.html"
+    ],
+    "network": [
+      "devel/tutorials/tutorial_fetch.html"
+    ],
+    "newtab": [
+      "user/commands/help.html"
+    ],
+    "nexp": [
+      "user/commands/mlp.html"
+    ],
+    "nonatomic": [
+      "user/commands/marker.html"
+    ],
+    "none": [
+      "user/commands/topography.html",
+      "user/commands/dockprep.html"
+    ],
+    "nucl": [
+      "user/commands/nucleotides.html"
+    ],
+    "nucleotides": [
+      "user/commands/nucleotides.html"
+    ],
+    "number": [
+      "user/commands/wait.html"
+    ],
+    "numericlabelspacing": [
+      "user/commands/key.html"
+    ],
+    "objects": [
+      "devel/modules/core/objects.html",
+      "user/commands/define.html"
+    ],
+    "offset": [
+      "user/commands/clip.html",
+      "user/commands/coulombic.html"
+    ],
+    "ongoing": [
+      "user/commands/taskman.html"
+    ],
+    "open": [
+      "user/commands/open.html",
+      "user/commands/sym.html"
+    ],
+    "openers": [
+      "devel/modules/open_command/open.html"
+    ],
+    "opengl": [
+      "devel/modules/graphics/graphics.html"
+    ],
+    "operation": [
+      "user/commands/rna.html",
+      "user/commands/perframe.html"
+    ],
+    "operations": [
+      "user/commands/select.html"
+    ],
+    "option": [
+      "user/commands/palettes.html"
+    ],
+    "optionally": [
+      "user/commands/pointspec.html"
+    ],
+    "options": [
+      "user/commands/label.html",
+      "user/commands/fitmap.html",
+      "user/commands/shape.html",
+      "user/commands/graphics.html",
+      "user/commands/nucleotides.html",
+      "user/commands/molmap.html",
+      "user/commands/volume.html",
+      "user/commands/device.html",
+      "user/commands/material.html",
+      "user/commands/movie.html"
+    ],
+    "ordered": [
+      "user/commands/palettes.html",
+      "user/commands/vseries.html"
+    ],
+    "orientation": [
+      "user/commands/hkcage.html"
+    ],
+    "othe": [
+      "user/commands/struts.html"
+    ],
+    "other": [
+      "user/commands/label.html",
+      "user/commands/matchmaker.html",
+      "user/commands/bumps.html",
+      "user/commands/save.html",
+      "user/commands/modeller.html",
+      "user/commands/remotecontrol.html"
+    ],
+    "over": [
+      "user/commands/crossfade.html"
+    ],
+    "packages": [
+      "user/commands/version.html"
+    ],
+    "page": [
+      "user/commands/help.html",
+      "user/commands/atomspec-diffsum.html"
+    ],
+    "pages": [
+      "user/commands/usageconventions.html"
+    ],
+    "pairs": [
+      "user/commands/palettes.html"
+    ],
+    "palette": [
+      "user/commands/palettes.html",
+      "user/commands/palette.html"
+    ],
+    "palettes": [
+      "user/commands/palettes.html",
+      "user/commands/palette.html"
+    ],
+    "parameters": [
+      "user/commands/graphics.html",
+      "user/commands/set.html"
+    ],
+    "parts": [
+      "user/commands/select.html"
+    ],
+    "pausefr": [
+      "user/commands/resfit.html"
+    ],
+    "pauseframes": [
+      "user/commands/mseries.html"
+    ],
+    "pbond": [
+      "user/commands/pbond.html"
+    ],
+    "pbonds": [
+      "user/commands/delete.html"
+    ],
+    "percent": [
+      "user/commands/transparency.html",
+      "user/commands/surface.html"
+    ],
+    "perform": [
+      "user/commands/sequence.html",
+      "user/commands/fitmap.html"
+    ],
+    "performs": [
+      "user/commands/measure.html",
+      "user/commands/similarstructures.html",
+      "user/commands/segmentations.html"
+    ],
+    "perframe": [
+      "user/commands/perframe.html"
+    ],
+    "pixel": [
+      "user/commands/scalebar.html"
+    ],
+    "pixelsize": [
+      "user/commands/zoom.html"
+    ],
+    "point": [
+      "user/commands/rock.html",
+      "user/commands/wobble.html",
+      "user/commands/bumps.html"
+    ],
+    "points": [
+      "user/commands/pointspec.html",
+      "devel/modules/geometry/geometry.html"
+    ],
+    "pointspec": [
+      "user/commands/pointspec.html"
+    ],
+    "position": [
+      "user/commands/scalebar.html"
+    ],
+    "potentially": [
+      "user/commands/rna.html"
+    ],
+    "prede": [
+      "user/commands/colornames.html"
+    ],
+    "predefined": [
+      "user/commands/preset.html"
+    ],
+    "predicting": [
+      "user/commands/alphafold.html",
+      "user/commands/esmfold.html"
+    ],
+    "prefers": [
+      "user/commands/info.html",
+      "user/commands/hbonds.html",
+      "user/commands/runscript.html",
+      "user/commands/mlp.html",
+      "user/commands/tug.html",
+      "user/commands/transparency.html",
+      "user/commands/usageconventions.html",
+      "user/commands/surface.html",
+      "user/commands/rename.html",
+      "user/commands/renumber.html"
+    ],
+    "prefix": [
+      "user/commands/open.html"
+    ],
+    "preserve": [
+      "user/commands/swapna.html"
+    ],
+    "preset": [
+      "user/commands/material.html",
+      "user/commands/preset.html",
+      "devel/modules/preset_mgr/presets.html",
+      "user/commands/lighting.html"
+    ],
+    "presets": [
+      "devel/tutorials/tutorial_presets.html",
+      "devel/modules/preset_mgr/presets.html"
+    ],
+    "probein": [
+      "user/commands/kvfinder.html"
+    ],
+    "probeout": [
+      "user/commands/kvfinder.html"
+    ],
+    "proberadius": [
+      "user/commands/interfaces.html"
+    ],
+    "progress": [
+      "user/commands/stop.html"
+    ],
+    "prompted": [
+      "user/commands/registration.html"
+    ],
+    "properties": [
+      "user/commands/material.html"
+    ],
+    "property": [
+      "user/commands/measure.html"
+    ],
+    "prot": [
+      "user/commands/mutationscores.html"
+    ],
+    "prote": [
+      "user/commands/esmfold.html"
+    ],
+    "pseudobond": [
+      "user/commands/crosslinks.html"
+    ],
+    "pseudobonds": [
+      "user/commands/delete.html"
+    ],
+    "pyproject": [
+      "devel/tutorials/pyproject.html"
+    ],
+    "python": [
+      "user/commands/runscript.html"
+    ],
+    "quit": [
+      "user/commands/exit.html"
+    ],
+    "radius": [
+      "user/commands/cofr.html",
+      "user/commands/crosslinks.html",
+      "user/commands/hkcage.html"
+    ],
+    "rainbow": [
+      "user/commands/color.html"
+    ],
+    "range": [
+      "user/commands/perframe.html",
+      "user/commands/bumps.html"
+    ],
+    "rbvi": [
+      "user/commands/toolshed.html"
+    ],
+    "read": [
+      "devel/tutorials/tutorial_read_format.html",
+      "devel/modules/mmcif/mmcif.html"
+    ],
+    "reasonable": [
+      "user/commands/bond.html"
+    ],
+    "redo": [
+      "user/commands/undo.html"
+    ],
+    "refatoms": [
+      "user/commands/tug.html",
+      "user/commands/align.html"
+    ],
+    "refstruct": [
+      "user/commands/matchmaker.html"
+    ],
+    "register": [
+      "devel/modules/save_command/save.html",
+      "user/commands/registration.html",
+      "devel/modules/open_command/open.html"
+    ],
+    "registration": [
+      "user/commands/registration.html"
+    ],
+    "related": [
+      "user/commands/sequence.html",
+      "user/commands/similarstructures.html"
+    ],
+    "relative": [
+      "user/commands/renumber.html"
+    ],
+    "remotecontrol": [
+      "user/commands/remotecontrol.html"
+    ],
+    "removaldistance": [
+      "user/commands/kvfinder.html"
+    ],
+    "removes": [
+      "user/commands/close.html"
+    ],
+    "rename": [
+      "user/commands/rename.html"
+    ],
+    "rendering": [
+      "devel/modules/graphics/graphics.html",
+      "user/commands/graphics.html"
+    ],
+    "renumber": [
+      "user/commands/renumber.html"
+    ],
+    "replace": [
+      "user/commands/smoothlines.html"
+    ],
+    "repor": [
+      "user/commands/angle.html",
+      "user/commands/align.html"
+    ],
+    "report": [
+      "user/commands/dssp.html"
+    ],
+    "reports": [
+      "user/commands/version.html",
+      "user/commands/pwd.html",
+      "user/commands/getcrd.html"
+    ],
+    "repository": [
+      "user/commands/toolshed.html"
+    ],
+    "representations": [
+      "user/commands/marker.html"
+    ],
+    "require": [
+      "user/commands/atomspec.html",
+      "user/commands/pointspec.html"
+    ],
+    "resfit": [
+      "user/commands/resfit.html"
+    ],
+    "residue": [
+      "user/commands/zone.html",
+      "user/commands/addcharge.html",
+      "user/commands/renumber.html",
+      "user/commands/swapaa.html",
+      "user/commands/colortables.html",
+      "user/commands/swapna.html"
+    ],
+    "residuedistance": [
+      "user/commands/zone.html"
+    ],
+    "residuerange": [
+      "user/commands/resfit.html"
+    ],
+    "resolution": [
+      "user/commands/molmap.html"
+    ],
+    "restore": [
+      "user/commands/view.html"
+    ],
+    "restrict": [
+      "user/commands/clashes.html",
+      "user/commands/hbonds.html"
+    ],
+    "results": [
+      "user/commands/mutationscores.html"
+    ],
+    "retainids": [
+      "user/commands/combine.html"
+    ],
+    "reveal": [
+      "user/commands/pbond.html"
+    ],
+    "ribbon": [
+      "user/commands/cartoon.html"
+    ],
+    "ringfill": [
+      "user/commands/style.html"
+    ],
+    "rmsd": [
+      "user/commands/rmsd.html"
+    ],
+    "rock": [
+      "user/commands/roll.html",
+      "user/commands/turn.html",
+      "user/commands/rock.html"
+    ],
+    "roll": [
+      "user/commands/stop.html",
+      "user/commands/roll.html"
+    ],
+    "root": [
+      "user/commands/info.html",
+      "user/commands/hbonds.html",
+      "user/commands/runscript.html",
+      "user/commands/mlp.html",
+      "user/commands/tug.html",
+      "user/commands/transparency.html",
+      "user/commands/usageconventions.html",
+      "user/commands/surface.html",
+      "user/commands/rename.html",
+      "user/commands/renumber.html"
+    ],
+    "rotamer": [
+      "user/commands/swapaa.html"
+    ],
+    "rotlib": [
+      "user/commands/swapaa.html"
+    ],
+    "rough": [
+      "user/commands/rna.html"
+    ],
+    "rows": [
+      "user/commands/buttonpanel.html"
+    ],
+    "running": [
+      "user/commands/runscript.html",
+      "user/commands/meeting.html"
+    ],
+    "runscript": [
+      "user/commands/runscript.html"
+    ],
+    "saltonly": [
+      "user/commands/hbonds.html"
+    ],
+    "same": [
+      "user/commands/morph.html"
+    ],
+    "save": [
+      "devel/tutorials/tutorial_save_format.html",
+      "user/commands/view.html",
+      "user/commands/snapshot.html",
+      "user/commands/save.html",
+      "user/commands/dockprep.html"
+    ],
+    "savefile": [
+      "user/commands/info.html"
+    ],
+    "saves": [
+      "user/commands/snapshot.html"
+    ],
+    "saving": [
+      "devel/modules/save_command/save.html"
+    ],
+    "scale": [
+      "user/commands/esmfold.html",
+      "user/commands/rna.html"
+    ],
+    "scalebar": [
+      "user/commands/scalebar.html"
+    ],
+    "scanning": [
+      "user/commands/mutationscores.html"
+    ],
+    "scene": [
+      "user/commands/meeting.html",
+      "user/commands/getcrd.html"
+    ],
+    "scheme": [
+      "user/commands/info.html",
+      "user/commands/hbonds.html",
+      "user/commands/runscript.html",
+      "user/commands/mlp.html",
+      "user/commands/tug.html",
+      "user/commands/transparency.html",
+      "user/commands/usageconventions.html",
+      "user/commands/surface.html",
+      "user/commands/rename.html",
+      "user/commands/renumber.html"
+    ],
+    "schemes": [
+      "user/commands/colortables.html"
+    ],
+    "screen": [
+      "user/commands/getcrd.html"
+    ],
+    "script": [
+      "user/commands/runscript.html"
+    ],
+    "search": [
+      "user/commands/fitmap.html"
+    ],
+    "sections": [
+      "user/commands/build.html"
+    ],
+    "segger": [
+      "user/commands/segger.html"
+    ],
+    "segment": [
+      "user/commands/segger.html",
+      "devel/modules/segment/segment.html"
+    ],
+    "segmentation": [
+      "user/commands/segmentation.html",
+      "user/commands/segger.html"
+    ],
+    "segmentations": [
+      "user/commands/segmentation.html",
+      "user/commands/segger.html",
+      "devel/modules/segment/segment.html",
+      "user/commands/segmentations.html"
+    ],
+    "select": [
+      "user/commands/select.html"
+    ],
+    "selected": [
+      "user/commands/select.html"
+    ],
+    "selection": [
+      "user/commands/select.html"
+    ],
+    "selector": [
+      "devel/tutorials/tutorial_selector.html"
+    ],
+    "send": [
+      "user/commands/remotecontrol.html"
+    ],
+    "sends": [
+      "user/commands/measure.html"
+    ],
+    "seqspec": [
+      "user/commands/seqspec.html"
+    ],
+    "seqstart": [
+      "user/commands/renumber.html"
+    ],
+    "sequence": [
+      "user/commands/blastprotein.html",
+      "user/commands/sequence.html",
+      "user/commands/seqspec.html",
+      "user/commands/modeller.html"
+    ],
+    "series": [
+      "user/commands/vseries.html"
+    ],
+    "session": [
+      "user/commands/2dlabels.html",
+      "user/commands/close.html"
+    ],
+    "setattr": [
+      "user/commands/setattr.html"
+    ],
+    "sets": [
+      "user/commands/torsion.html",
+      "user/commands/color.html",
+      "user/commands/graphics.html",
+      "user/commands/device.html",
+      "user/commands/material.html",
+      "user/commands/set.html"
+    ],
+    "settings": [
+      "user/commands/preset.html",
+      "user/commands/mcopy.html"
+    ],
+    "several": [
+      "user/commands/similarstructures.html"
+    ],
+    "shape": [
+      "user/commands/shape.html"
+    ],
+    "shares": [
+      "user/commands/meeting.html"
+    ],
+    "should": [
+      "user/commands/atomspec.html"
+    ],
+    "show": [
+      "user/commands/log.html",
+      "user/commands/show.html",
+      "user/commands/usageconventions.html"
+    ],
+    "showdist": [
+      "user/commands/pbond.html"
+    ],
+    "shown": [
+      "user/commands/colortables.html"
+    ],
+    "showpivot": [
+      "user/commands/cofr.html"
+    ],
+    "shows": [
+      "user/commands/segmentation.html",
+      "user/commands/usage.html",
+      "user/commands/info.html",
+      "user/commands/help.html",
+      "user/commands/mutationscores.html"
+    ],
+    "showtable": [
+      "user/commands/foldseek.html"
+    ],
+    "signed": [
+      "user/commands/distance.html"
+    ],
+    "similarstructures": [
+      "user/commands/similarstructures.html"
+    ],
+    "sing": [
+      "user/commands/rna.html"
+    ],
+    "size": [
+      "user/commands/zoom.html",
+      "user/commands/key.html",
+      "user/commands/size.html"
+    ],
+    "slider": [
+      "user/commands/mseries.html"
+    ],
+    "small": [
+      "user/commands/angle.html",
+      "user/commands/torsion.html"
+    ],
+    "smooth": [
+      "user/commands/cartoon.html"
+    ],
+    "smoothlines": [
+      "user/commands/smoothlines.html"
+    ],
+    "snapshot": [
+      "user/commands/snapshot.html"
+    ],
+    "source": [
+      "user/commands/mcopy.html"
+    ],
+    "spacegroup": [
+      "user/commands/unitcell.html"
+    ],
+    "spacingfactor": [
+      "user/commands/tile.html"
+    ],
+    "spec": [
+      "user/commands/zone.html",
+      "user/commands/angle.html",
+      "user/commands/info.html",
+      "user/commands/changechains.html",
+      "user/commands/name.html",
+      "user/commands/split.html",
+      "user/commands/crosslinks.html",
+      "user/commands/kvfinder.html",
+      "user/commands/mlp.html",
+      "user/commands/dssp.html"
+    ],
+    "specification": [
+      "user/commands/atomspec-diffsum.html",
+      "user/commands/pointspec.html",
+      "user/commands/atomspec.html",
+      "user/commands/colornames.html",
+      "user/commands/seqspec.html"
+    ],
+    "specified": [
+      "user/commands/usage.html",
+      "user/commands/shape.html",
+      "user/commands/help.html",
+      "user/commands/palettes.html",
+      "user/commands/view.html",
+      "user/commands/colornames.html",
+      "user/commands/close.html",
+      "user/commands/wait.html",
+      "user/commands/cd.html"
+    ],
+    "specifies": [
+      "user/commands/select.html"
+    ],
+    "specifying": [
+      "user/commands/atomspec.html"
+    ],
+    "sphe": [
+      "user/commands/hkcage.html"
+    ],
+    "sphere": [
+      "user/commands/style.html"
+    ],
+    "split": [
+      "user/commands/split.html"
+    ],
+    "square": [
+      "user/commands/rmsd.html"
+    ],
+    "standardizeresidues": [
+      "user/commands/addcharge.html"
+    ],
+    "start": [
+      "user/commands/renumber.html",
+      "user/commands/build.html",
+      "user/commands/perframe.html"
+    ],
+    "status": [
+      "user/commands/registration.html",
+      "user/commands/device.html"
+    ],
+    "step": [
+      "user/commands/mseries.html",
+      "user/commands/perframe.html"
+    ],
+    "stepfactor": [
+      "user/commands/smoothlines.html"
+    ],
+    "steps": [
+      "user/commands/tug.html"
+    ],
+    "stick": [
+      "user/commands/style.html",
+      "user/commands/hkcage.html"
+    ],
+    "stickradius": [
+      "user/commands/size.html"
+    ],
+    "stop": [
+      "user/commands/stop.html"
+    ],
+    "straight": [
+      "user/commands/2dlabels.html"
+    ],
+    "string": [
+      "user/commands/log.html",
+      "user/commands/show.html",
+      "user/commands/transparency.html"
+    ],
+    "struct": [
+      "user/commands/sequence.html"
+    ],
+    "structure": [
+      "user/commands/altlocs.html",
+      "user/commands/build.html",
+      "user/commands/foldseek.html"
+    ],
+    "structures": [
+      "user/commands/alphafold.html",
+      "devel/modules/atomic/atomic.html"
+    ],
+    "struts": [
+      "user/commands/struts.html"
+    ],
+    "style": [
+      "user/commands/style.html"
+    ],
+    "subcommands": [
+      "user/commands/sequence.html",
+      "user/commands/build.html"
+    ],
+    "subgroup": [
+      "devel/tutorials/tutorial_selector.html"
+    ],
+    "subsequent": [
+      "user/commands/select.html"
+    ],
+    "support": [
+      "devel/modules/io/io.html"
+    ],
+    "surfac": [
+      "user/commands/coulombic.html"
+    ],
+    "surface": [
+      "user/commands/shape.html",
+      "devel/modules/surface/surface.html",
+      "user/commands/surface.html"
+    ],
+    "surfacedistance": [
+      "user/commands/zone.html"
+    ],
+    "swapaa": [
+      "user/commands/swapaa.html"
+    ],
+    "swapna": [
+      "user/commands/swapna.html"
+    ],
+    "symbols": [
+      "user/commands/2dlabels.html",
+      "user/commands/symbols.html"
+    ],
+    "symfromfile": [
+      "user/commands/unitcell.html"
+    ],
+    "symmetry": [
+      "user/commands/sym.html"
+    ],
+    "syntax": [
+      "user/commands/usageconventions.html"
+    ],
+    "systems": [
+      "devel/modules/geometry/geometry.html"
+    ],
+    "tags": [
+      "devel/tutorials/bundle_info.html"
+    ],
+    "target": [
+      "user/commands/atomspec-diffsum.html",
+      "user/commands/transparency.html",
+      "user/commands/name.html",
+      "user/commands/atomspec.html",
+      "user/commands/show.html",
+      "user/commands/mcopy.html"
+    ],
+    "taskman": [
+      "user/commands/taskman.html"
+    ],
+    "templat": [
+      "user/commands/addh.html"
+    ],
+    "text": [
+      "user/commands/log.html",
+      "user/commands/2dlabels.html",
+      "user/commands/symbols.html"
+    ],
+    "thick": [
+      "user/commands/style.html"
+    ],
+    "thickness": [
+      "user/commands/scalebar.html"
+    ],
+    "thin": [
+      "user/commands/style.html"
+    ],
+    "thumbnail": [
+      "user/commands/log.html"
+    ],
+    "tile": [
+      "user/commands/tile.html"
+    ],
+    "title": [
+      "user/commands/buttonpanel.html"
+    ],
+    "toatoms": [
+      "user/commands/mcopy.html",
+      "user/commands/align.html",
+      "user/commands/tug.html"
+    ],
+    "toml": [
+      "devel/tutorials/pyproject.html"
+    ],
+    "tool": [
+      "user/commands/build.html",
+      "devel/tutorials/tutorial_tool_qt.html",
+      "devel/tutorials/tutorial_tool_html.html",
+      "devel/tutorials/tutorial_tool.html"
+    ],
+    "toolbar": [
+      "devel/modules/toolbar/toolbar.html"
+    ],
+    "toolshed": [
+      "user/commands/toolshed.html"
+    ],
+    "topography": [
+      "user/commands/topography.html"
+    ],
+    "torsion": [
+      "user/commands/torsion.html"
+    ],
+    "track": [
+      "devel/modules/preset_mgr/presets.html"
+    ],
+    "transparency": [
+      "user/commands/transparency.html",
+      "user/commands/surface.html"
+    ],
+    "triangulated": [
+      "devel/modules/surface/surface.html"
+    ],
+    "trim": [
+      "user/commands/foldseek.html"
+    ],
+    "true": [
+      "user/commands/crystalcontacts.html",
+      "user/commands/hbonds.html",
+      "user/commands/distance.html",
+      "user/commands/name.html",
+      "user/commands/dssp.html",
+      "user/commands/bond.html",
+      "user/commands/delete.html",
+      "user/commands/unitcell.html",
+      "user/commands/defattr.html",
+      "user/commands/open.html"
+    ],
+    "tugatoms": [
+      "user/commands/tug.html"
+    ],
+    "turn": [
+      "user/commands/stop.html",
+      "user/commands/turn.html"
+    ],
+    "tutorial": [
+      "devel/tutorials/introduction.html"
+    ],
+    "type": [
+      "user/commands/color.html",
+      "user/commands/setattr.html",
+      "user/commands/swapaa.html",
+      "user/commands/device.html",
+      "user/commands/hkcage.html",
+      "user/commands/swapna.html"
+    ],
+    "ucsf": [
+      "user/commands/toolshed.html"
+    ],
+    "undo": [
+      "user/commands/undo.html"
+    ],
+    "unitcell": [
+      "user/commands/unitcell.html"
+    ],
+    "updates": [
+      "user/commands/wait.html"
+    ],
+    "usage": [
+      "user/commands/info.html",
+      "user/commands/hbonds.html",
+      "user/commands/runscript.html",
+      "user/commands/mlp.html",
+      "user/commands/tug.html",
+      "user/commands/transparency.html",
+      "user/commands/usageconventions.html",
+      "user/commands/surface.html",
+      "user/commands/rename.html",
+      "user/commands/renumber.html"
+    ],
+    "usageconventions": [
+      "user/commands/usageconventions.html"
+    ],
+    "used": [
+      "user/commands/atomspec-diffsum.html",
+      "user/commands/marker.html",
+      "devel/modules/preset_mgr/presets.html"
+    ],
+    "user": [
+      "user/commands/registration.html",
+      "user/commands/ui.html",
+      "devel/modules/ui/gui.html"
+    ],
+    "using": [
+      "devel/modules/graphics/graphics.html",
+      "devel/tutorials/pyproject.html"
+    ],
+    "value": [
+      "user/commands/setattr.html",
+      "user/commands/swapna.html",
+      "user/commands/palettes.html",
+      "user/commands/set.html"
+    ],
+    "various": [
+      "user/commands/measure.html",
+      "user/commands/set.html"
+    ],
+    "vectors": [
+      "user/commands/pointspec.html"
+    ],
+    "verbose": [
+      "user/commands/registration.html",
+      "user/commands/version.html"
+    ],
+    "version": [
+      "user/commands/blastprotein.html",
+      "user/commands/version.html"
+    ],
+    "versus": [
+      "user/commands/atomspec-diffsum.html"
+    ],
+    "view": [
+      "user/commands/sym.html",
+      "user/commands/view.html"
+    ],
+    "viewall": [
+      "user/commands/tile.html"
+    ],
+    "viewer": [
+      "user/commands/sequence.html"
+    ],
+    "views": [
+      "user/commands/view.html"
+    ],
+    "volu": [
+      "user/commands/segger.html"
+    ],
+    "volume": [
+      "user/commands/topography.html",
+      "user/commands/volume.html",
+      "user/commands/vseries.html",
+      "user/commands/bumps.html"
+    ],
+    "volumecuto": [
+      "user/commands/kvfinder.html"
+    ],
+    "vseries": [
+      "user/commands/vseries.html"
+    ],
+    "wait": [
+      "user/commands/wait.html"
+    ],
+    "what": [
+      "user/commands/transparency.html",
+      "user/commands/align.html"
+    ],
+    "width": [
+      "user/commands/log.html",
+      "user/commands/windowsize.html",
+      "user/commands/key.html"
+    ],
+    "window": [
+      "user/commands/windowsize.html"
+    ],
+    "windowfill": [
+      "user/commands/ui.html"
+    ],
+    "windowsize": [
+      "user/commands/windowsize.html"
+    ],
+    "without": [
+      "user/commands/version.html"
+    ],
+    "wobble": [
+      "user/commands/roll.html",
+      "user/commands/turn.html",
+      "user/commands/wobble.html"
+    ],
+    "wobbleaspect": [
+      "user/commands/roll.html",
+      "user/commands/turn.html"
+    ],
+    "wordlist": [
+      "user/commands/alias.html"
+    ],
+    "working": [
+      "user/commands/cd.html",
+      "user/commands/pwd.html"
+    ],
+    "world": [
+      "devel/tutorials/tutorial_hello.html"
+    ],
+    "worm": [
+      "user/commands/cartoon.html"
+    ],
+    "wrap": [
+      "user/commands/morph.html"
+    ],
+    "write": [
+      "devel/modules/mmcif/mmcif.html"
+    ],
+    "xpos": [
+      "user/commands/scalebar.html",
+      "user/commands/key.html"
+    ],
+    "ypos": [
+      "user/commands/scalebar.html",
+      "user/commands/key.html"
+    ],
+    "zerop": [
+      "user/commands/perframe.html"
+    ],
+    "zone": [
+      "user/commands/zone.html"
+    ],
+    "zoom": [
+      "user/commands/zoom.html"
+    ]
+  }
+}
