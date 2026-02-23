@@ -9,7 +9,7 @@ MCP server for controlling UCSF ChimeraX molecular visualization.
 - **Screenshot Capture**: Take screenshots of the 3D view and tool windows
 - **View Management**: Fit, rotate, and reset the view
 - **Session Management**: Save and load ChimeraX sessions
-- **echidna Integration**: Build, install, and test ChimeraX bundles
+
 
 ## Installation
 
@@ -67,14 +67,6 @@ Add to your MCP client configuration (e.g. `~/.claude/.mcp.json`):
 | `chimerax_session_save` | Save session |
 | `chimerax_session_open` | Load session |
 
-### Bundle Development (echidna)
-
-| Tool | Description |
-|------|-------------|
-| `bundle_install` | Build and install a bundle |
-| `bundle_run` | Build, install, and launch ChimeraX |
-| `bundle_test` | Run tests for a bundle |
-
 ## Claude Code Skills
 
 This repository includes Claude Code skills for ChimeraX documentation reference and bundle development.
@@ -103,7 +95,6 @@ This MCP server communicates with ChimeraX via its REST API:
 
 - [UCSF ChimeraX](https://www.cgl.ucsf.edu/chimerax/)
 - Python 3.12+
-- [echidna](https://github.com/N283T/echidna) (optional, for bundle development tools)
 
 ## Security Considerations
 
