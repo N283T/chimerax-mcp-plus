@@ -408,7 +408,10 @@ def analyze_secondary_structure(
         return {"status": "error", "screenshots": [], "data": {"error": "dssp failed"}}, img_num
 
     _try_command("cartoon style arrowheads true", base_url)
-    _try_command("color bychain", base_url)
+    # Color by secondary structure type to visually distinguish from overview
+    _try_command("color helix red target c", base_url)
+    _try_command("color strand cornflowerblue target c", base_url)
+    _try_command("color coil gray target c", base_url)
 
     fname = f"{img_num:02d}_secondary_structure.png"
     _take_screenshot(images_dir.joinpath(fname), base_url, width, height, auto_fit=True)
