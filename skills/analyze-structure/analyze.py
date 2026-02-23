@@ -36,6 +36,7 @@ _RESET_COMMANDS = [
     "hide atoms",
     "hide surface",
     "cartoon",
+    "color bychain",
     "color byhetero",
     "lighting soft",
     "view",
