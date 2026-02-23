@@ -98,22 +98,29 @@ def _parse_int(text: str, pattern: str) -> int | None:
 
 
 def _parse_chain_info(text: str) -> list[dict[str, str]]:
-    """Parse ``info chains`` output into a list of chain dicts."""
+    """Parse ``info chains`` output into a list of chain dicts.
+
+    ChimeraX format: ``chain id /A chain_id A``
+    """
     chains: list[dict[str, str]] = []
     for line in text.strip().splitlines():
-        line = line.strip()
-        if not line or line.startswith("chain"):
-            continue
-        parts = line.split()
-        if len(parts) >= 2:
-            chain_id = parts[0].split("/")[-1] if "/" in parts[0] else parts[0]
-            chain_type = parts[1] if len(parts) > 1 else "unknown"
-            chains.append({"id": chain_id, "type": chain_type})
+        # Match "chain id /X chain_id X"
+        m = re.search(r"chain\s+id\s+/(\w)\s+chain_id\s+(\w)", line)
+        if m:
+            chains.append({"id": m.group(1)})
     return chains
 
 
 def _parse_selection_count(text: str) -> int:
-    """Parse atom count from ``info sel`` or ``info atoms`` output."""
+    """Parse atom count from ``info sel`` or ``select`` output.
+
+    Handles: ``94 atoms, ...`` and ``Selected 214 atoms``.
+    """
+    # "Selected N atoms" from select commands
+    m = re.search(r"[Ss]elected\s+(\d+)\s+atom", text)
+    if m:
+        return int(m.group(1))
+    # "N atoms, N bonds, ..." from info commands
     m = re.search(r"(\d+)\s+atom", text)
     return int(m.group(1)) if m else 0
 
@@ -133,32 +140,20 @@ def _parse_model_counts(text: str) -> dict[str, int]:
 
 
 def _parse_ligand_residues(text: str) -> list[dict[str, str | int]]:
-    """Parse ligand residue info from ``info residues ligand`` output."""
+    """Parse ligand residue info from ``info residues ligand`` output.
+
+    ChimeraX format: ``residue id /B:902 name MK1``
+    """
     ligands: list[dict[str, str | int]] = []
     for line in text.strip().splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        # Typical format: "/A MK1 902" or "#1/A:902 MK1"
-        # Try common patterns
-        m = re.search(r"[/#](\w)\s*[:/]?\s*(\w+)\s+(\d+)", line)
+        # "residue id /B:902 name MK1"
+        m = re.search(r"residue\s+id\s+/(\w):(\d+)\s+name\s+(\w+)", line)
         if m:
             ligands.append(
                 {
                     "chain": m.group(1),
-                    "name": m.group(2),
-                    "number": int(m.group(3)),
-                }
-            )
-            continue
-        # Alternative: "MK1 /B:902"
-        m = re.search(r"(\w{2,4})\s+/(\w):(\d+)", line)
-        if m:
-            ligands.append(
-                {
-                    "name": m.group(1),
-                    "chain": m.group(2),
-                    "number": int(m.group(3)),
+                    "number": int(m.group(2)),
+                    "name": m.group(3),
                 }
             )
     return ligands
@@ -167,6 +162,13 @@ def _parse_ligand_residues(text: str) -> list[dict[str, str | int]]:
 # ---------------------------------------------------------------------------
 # Detection
 # ---------------------------------------------------------------------------
+
+
+def _select_count(spec: str, base_url: str) -> int:
+    """Select atoms and return count. Uses combined command for reliability."""
+    out = _try_command(f"select {spec}; info sel", base_url)
+    _try_command("select clear", base_url)
+    return _parse_selection_count(out) if out else 0
 
 
 def detect_contents(base_url: str) -> dict:
@@ -186,26 +188,15 @@ def detect_contents(base_url: str) -> dict:
     if out:
         result["chains"] = _parse_chain_info(out)
 
-    # Protein
-    _try_command("select protein", base_url)
-    out = _try_command("info sel", base_url)
-    if out and _parse_selection_count(out) > 0:
-        result["has_protein"] = True
-    _try_command("select clear", base_url)
+    # Content detection using combined select+info commands
+    protein_count = _select_count("protein", base_url)
+    result["has_protein"] = protein_count > 0
 
-    # Ligand
-    _try_command("select ligand", base_url)
-    out = _try_command("info sel", base_url)
-    if out and _parse_selection_count(out) > 0:
-        result["has_ligand"] = True
-    _try_command("select clear", base_url)
+    ligand_count = _select_count("ligand", base_url)
+    result["has_ligand"] = ligand_count > 0
 
-    # Nucleic
-    _try_command("select nucleic", base_url)
-    out = _try_command("info sel", base_url)
-    if out and _parse_selection_count(out) > 0:
-        result["has_nucleic"] = True
-    _try_command("select clear", base_url)
+    nucleic_count = _select_count("nucleic", base_url)
+    result["has_nucleic"] = nucleic_count > 0
 
     # Ligand details
     if result["has_ligand"]:
@@ -214,18 +205,29 @@ def detect_contents(base_url: str) -> dict:
             result["ligands"] = _parse_ligand_residues(out)
 
     # Water count
-    _try_command("select :HOH", base_url)
-    out = _try_command("info sel", base_url)
+    out = _try_command("select :HOH; info sel", base_url)
     if out:
         result["water_count"] = _parse_residue_count(out)
     _try_command("select clear", base_url)
 
-    # Multimer detection: 2+ chains of the same type
-    type_counts: dict[str, int] = {}
+    # Detect chain types and multimer
+    # Test each chain for protein content
+    protein_chains = 0
     for chain in result["chains"]:
-        t = chain.get("type", "unknown")
-        type_counts[t] = type_counts.get(t, 0) + 1
-    result["is_multimer"] = any(v >= 2 for v in type_counts.values())
+        cid = chain["id"]
+        count = _select_count(f"#1/{cid} & protein", base_url)
+        chain["type"] = "protein" if count > 0 else "other"
+        if count > 0:
+            protein_chains += 1
+    # Check nucleic chains
+    for chain in result["chains"]:
+        if chain["type"] == "other":
+            cid = chain["id"]
+            count = _select_count(f"#1/{cid} & nucleic", base_url)
+            if count > 0:
+                chain["type"] = "nucleic"
+
+    result["is_multimer"] = protein_chains >= 2
 
     return result
 
@@ -320,10 +322,12 @@ def analyze_chain_alignment(
         return {"status": "skipped", "screenshots": [], "data": {}}, img_num
 
     chain_a, chain_b = pair
-    out = _try_command(f"align #1/{chain_a} to #1/{chain_b}", base_url)
+    # Use @CA for reliable alignment of protein chains
+    out = _try_command(f"align #1/{chain_a}@CA to #1/{chain_b}@CA", base_url)
     if out:
-        rmsd = _parse_float(out, r"RMSD\s+(?:between\s+.+\s+is\s+|=\s*)([\d.]+)")
-        ca_count = _parse_int(out, r"(\d+)\s+(?:atom|CA)")
+        # "RMSD between 99 atom pairs is 0.400 angstroms"
+        rmsd = _parse_float(out, r"RMSD\s+between\s+\d+\s+atom\s+pairs\s+is\s+([\d.]+)")
+        ca_count = _parse_int(out, r"(\d+)\s+atom\s+pair")
         data["chain_a"] = chain_a
         data["chain_b"] = chain_b
         data["rmsd"] = rmsd
@@ -359,9 +363,8 @@ def analyze_ligand_overview(
     screenshots.append(f"images/{fname}")
     img_num += 1
 
-    # Atom count for ligand
-    _try_command("select ligand", base_url)
-    out = _try_command("info sel", base_url)
+    # Atom count for ligand (combined command for reliability)
+    out = _try_command("select ligand; info sel", base_url)
     if out:
         data["ligand_atom_count"] = _parse_selection_count(out)
     _try_command("select clear", base_url)
@@ -382,7 +385,10 @@ def analyze_binding_site(
 
     # Binding site residues
     _reset_display(base_url)
-    _try_command("select zone ligand 4 protein", base_url)
+    # select zone returns "Selected N atoms" — capture it directly
+    out = _try_command("select zone ligand 4 protein", base_url)
+    if out:
+        data["binding_site_atoms"] = _parse_selection_count(out)
     _try_command("show sel atoms", base_url)
     _try_command("style sel stick", base_url)
     _try_command("color sel cornflowerblue", base_url)
@@ -392,11 +398,6 @@ def analyze_binding_site(
     _try_command("color ligand magenta", base_url)
     _try_command("color ligand byhetero", base_url)
     _try_command("view ligand", base_url)
-
-    # Count selected binding site atoms
-    out = _try_command("info sel", base_url)
-    if out:
-        data["binding_site_atoms"] = _parse_selection_count(out)
     _try_command("select clear", base_url)
 
     fname = f"{img_num:02d}_binding_site.png"
@@ -408,7 +409,8 @@ def analyze_binding_site(
     _try_command("addh", base_url)
     out = _try_command("hbonds ligand restrict cross reveal true color cyan", base_url)
     if out:
-        hbond_count = _parse_int(out, r"Found\s+(\d+)\s+hydrogen\s+bond")
+        # Matches: "Found N hydrogen bonds", "N hydrogen bonds found", "N H-bonds"
+        hbond_count = _parse_int(out, r"(\d+)\s+hydrogen\s+bond")
         if hbond_count is None:
             hbond_count = _parse_int(out, r"(\d+)\s+H-bond")
         data["hbond_count"] = hbond_count
@@ -422,13 +424,14 @@ def analyze_binding_site(
     # Contacts
     out = _try_command("contacts ligand restrict cross", base_url)
     if out:
-        data["contact_count"] = _parse_int(out, r"(\d+)")
+        data["contact_count"] = _parse_int(out, r"(\d+)\s+contact")
         data["contacts_raw"] = out.strip()
 
     # Clashes
     out = _try_command("clashes ligand restrict cross", base_url)
     if out:
-        data["clash_count"] = _parse_int(out, r"(\d+)")
+        clash_count = _parse_int(out, r"(\d+)\s+clash")
+        data["clash_count"] = clash_count if clash_count is not None else 0
         data["clashes_raw"] = out.strip()
 
     return {"status": "ok", "screenshots": screenshots, "data": data}, img_num
@@ -503,9 +506,15 @@ def analyze_dimer_interface(
         return {"status": "skipped", "screenshots": [], "data": {}}, img_num
 
     chain_a, chain_b = pair
-    out = _try_command(f"interfaces #1/{chain_a} contact #1/{chain_b}", base_url)
+    # "interfaces #1" computes all chain interfaces
+    # Output: "1 buried areas: B A 2326"
+    out = _try_command("interfaces #1", base_url)
     if out:
-        bsa = _parse_float(out, r"([\d,.]+)\s*(?:A\^2|angstrom)")
+        # Parse buried area value from "B A 2326" pattern
+        bsa = _parse_float(out, r"buried\s+areas?:.+?(\d+)\s*$")
+        if bsa is None:
+            # Try any number at end of line after chain IDs
+            bsa = _parse_float(out, r"\b([0-9]+(?:\.[0-9]+)?)\s*$")
         data["chain_a"] = chain_a
         data["chain_b"] = chain_b
         data["buried_surface_area"] = bsa
@@ -598,15 +607,23 @@ def run_analysis(
         "chains": detection["chains"],
     }
 
-    # Try to extract title and resolution from open output
+    # Parse title from open output: "title:  \n**...**"
     if open_out:
-        # Title often in the open command output
-        title_match = re.search(r"(?:title|name)\s*[=:]\s*(.+)", open_out, re.IGNORECASE)
+        # Extract text between ** markers (bold title in markdown output)
+        title_match = re.search(r"\*\*(.+?)\*\*", open_out, re.DOTALL)
         if title_match:
-            structure["title"] = title_match.group(1).strip()
-        res_match = re.search(r"resolution\s*[=:]\s*([\d.]+)", open_out, re.IGNORECASE)
+            # Clean up: remove newlines, collapse spaces
+            title = re.sub(r"\s+", " ", title_match.group(1)).strip()
+            structure["title"] = title
+        # Extract resolution from title text (e.g., "1.9 angstroms")
+        res_match = re.search(r"([\d.]+)\s*(?:angstroms?|A)\s+resolution", open_out, re.IGNORECASE)
         if res_match:
             structure["resolution"] = res_match.group(1)
+        else:
+            # Try "resolution X.X" pattern
+            res_match = re.search(r"resolution\s+([\d.]+)", open_out, re.IGNORECASE)
+            if res_match:
+                structure["resolution"] = res_match.group(1)
 
     # -- Section: Overview --
     print("Section: Overview...")
