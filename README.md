@@ -73,8 +73,7 @@ This repository includes Claude Code skills for ChimeraX documentation reference
 
 | Skill | Description |
 |-------|-------------|
-| `/explore-chimerax` | Router skill for ChimeraX documentation and sub-skill routing |
-| `/explore-chimerax-commands` | Command exploration and MCP operation reference |
+| `/explore-chimerax` | ChimeraX command exploration and documentation reference |
 | `/reference-chimerax-dev` | Bundle/extension development reference |
 
 To use these skills, symlink them into your Claude Code skills directory:
@@ -87,7 +86,7 @@ ln -s /path/to/chimerax-mcp-plus/skills/* ~/.claude/skills/
 
 This MCP server communicates with ChimeraX via its REST API:
 
-1. ChimeraX is started with `remotecontrol rest start port 63269`
+1. ChimeraX is started with `remotecontrol rest start port 63269 json true`
 2. Commands are sent via HTTP GET to `http://127.0.0.1:63269/run?command=...`
 3. Results are parsed and returned to the AI client
 
