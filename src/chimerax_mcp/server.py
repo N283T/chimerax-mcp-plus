@@ -158,6 +158,28 @@ def chimerax_status() -> dict[str, Any]:
     return {"status": "ok", "running": False}
 
 
+def _format_response(result: dict[str, Any]) -> dict[str, Any]:
+    """Format a successful ChimeraX response for MCP tool output."""
+    response: dict[str, Any] = {"status": "ok"}
+
+    # Main output from info-level log messages
+    info = result.get("log_messages", {}).get("info", [])
+    if info:
+        response["output"] = "\n".join(info)
+
+    # Include warnings
+    warnings = result.get("log_messages", {}).get("warning", [])
+    if warnings:
+        response["warnings"] = warnings
+
+    # Include structured data if available
+    json_vals = [v for v in result.get("json_values", []) if v is not None]
+    if json_vals:
+        response["json_values"] = json_vals
+
+    return response
+
+
 def _run_command(command: str) -> dict[str, Any]:
     """Internal function to execute a ChimeraX command."""
     client = get_client()
@@ -166,13 +188,23 @@ def _run_command(command: str) -> dict[str, Any]:
 
     try:
         result = client.run_command(command)
-        return result
     except httpx.ConnectError:
         return {"status": "error", "message": "Lost connection to ChimeraX"}
     except httpx.HTTPStatusError as e:
         return {"status": "error", "message": f"HTTP error: {e.response.status_code}"}
     except httpx.HTTPError as e:
         return {"status": "error", "message": f"HTTP error: {e}"}
+
+    # Check for ChimeraX-level error
+    if result.get("error") is not None:
+        err = result["error"]
+        return {
+            "status": "error",
+            "error_type": err.get("type", "Unknown"),
+            "message": err.get("message", "Unknown error"),
+        }
+
+    return _format_response(result)
 
 
 @mcp.tool()
@@ -268,8 +300,10 @@ def chimerax_reset() -> dict[str, Any]:
     for cmd in _RESET_COMMANDS:
         try:
             result = client.run_command(cmd)
-            if result.get("status") == "error":
-                errors.append(f"{cmd}: {result.get('message', 'unknown error')}")
+            if result.get("error") is not None:
+                err = result["error"]
+                msg = err.get("message", "unknown error") if isinstance(err, dict) else str(err)
+                errors.append(f"{cmd}: {msg}")
         except httpx.ConnectError as e:
             errors.append(f"{cmd}: {e}")
             return {
@@ -410,6 +444,10 @@ def chimerax_tool_screenshot(
         }
     if padding < 0:
         return {"status": "error", "message": "padding must be >= 0"}
+    if output_path is not None:
+        stripped = output_path.strip()
+        if not stripped:
+            return {"status": "error", "message": "output_path must not be empty or whitespace"}
 
     client = get_client()
     if not client.is_running():
@@ -417,10 +455,7 @@ def chimerax_tool_screenshot(
 
     # Determine output path
     if output_path is not None:
-        stripped = output_path.strip()
-        if not stripped:
-            return {"status": "error", "message": "output_path must not be empty or whitespace"}
-        resolved = Path(stripped)
+        resolved = Path(output_path.strip())
     else:
         screenshots_dir = Path.home().joinpath(".local", "share", "chimerax-mcp", "screenshots")
         screenshots_dir.mkdir(parents=True, exist_ok=True)
@@ -442,7 +477,7 @@ def chimerax_tool_screenshot(
         script_path.write_text(script)
 
         result = client.run_command(f"runscript {script_path}")
-        output = result.get("output", "")
+        output = client._extract_output(result)
 
         if "ERROR:" in output:
             msg = output.split("ERROR:", 1)[1].strip()

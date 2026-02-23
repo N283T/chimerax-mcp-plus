@@ -50,23 +50,58 @@ class ChimeraXClient:
             return False
 
     def run_command(self, command: str) -> dict[str, Any]:
-        """Execute a ChimeraX command and return the result."""
+        """Execute a ChimeraX command and return the result.
+
+        Returns a normalized dict with keys: python_values, json_values,
+        log_messages, error.  Works in both ``json true`` and plain-text modes.
+        """
         encoded = quote(command, safe="")
         response = self._client.get(f"{self.base_url}/run?command={encoded}")
         response.raise_for_status()
-        return {"status": "ok", "output": response.text}
+
+        # Try JSON mode first, fall back to plain text
+        try:
+            data = response.json()
+            return {
+                "python_values": data.get("python values", []),
+                "json_values": data.get("json values", []),
+                "log_messages": data.get("log messages", {}),
+                "error": data.get("error"),
+            }
+        except (ValueError, KeyError):
+            # Plain text mode (json false) — normalize to same shape
+            text = response.text.strip()
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {"info": [text] if text else []},
+                "error": None,
+            }
+
+    @staticmethod
+    def _extract_output(result: dict[str, Any]) -> str:
+        """Extract human-readable output from a command result."""
+        msgs = result.get("log_messages", {})
+        info = msgs.get("info", [])
+        return "\n".join(info)
 
     def get_version(self) -> str:
         """Get ChimeraX version."""
         result = self.run_command("version")
-        return result["output"].strip()
+        return self._extract_output(result).strip()
 
     def get_models(self) -> list[dict[str, Any]]:
         """Get list of open models."""
         result = self.run_command("info models")
-        lines = result["output"].strip().split("\n")
+        # Prefer json_values if available
+        json_vals = result.get("json_values", [])
+        if json_vals and json_vals[0] is not None:
+            first = json_vals[0]
+            return first if isinstance(first, list) else [first]
+        # Fall back to parsing info log messages
+        output = self._extract_output(result)
         models = []
-        for line in lines:
+        for line in output.strip().split("\n"):
             if line.strip():
                 models.append({"info": line.strip()})
         return models
@@ -176,7 +211,7 @@ def start_chimerax(
     cmd = [str(chimerax_path)]
     if nogui:
         cmd.append("--nogui")
-    cmd.extend(["--cmd", f"remotecontrol rest start port {port}"])
+    cmd.extend(["--cmd", f"remotecontrol rest start port {port} json true"])
 
     return subprocess.Popen(
         cmd,

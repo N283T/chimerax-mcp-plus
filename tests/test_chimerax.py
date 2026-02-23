@@ -54,8 +54,145 @@ class TestChimeraXClient:
             client.run_command("version")
 
 
+class TestRunCommand:
+    """Test run_command JSON/text parsing and _extract_output."""
+
+    @staticmethod
+    def _fake_response(status_code: int = 200, **kwargs) -> httpx.Response:
+        """Create a fake httpx.Response with a request attached."""
+        request = httpx.Request("GET", "http://127.0.0.1:59998/run?command=test")
+        return httpx.Response(status_code, request=request, **kwargs)
+
+    def test_json_mode_parsing(self):
+        """JSON response is normalized to internal format."""
+        client = ChimeraXClient(port=59998)
+        json_body = {
+            "python values": ["hello"],
+            "json values": [None],
+            "log messages": {"info": ["Version 1.9"], "warning": []},
+            "error": None,
+        }
+        fake_response = self._fake_response(json=json_body)
+
+        with patch.object(client._client, "get", return_value=fake_response):
+            result = client.run_command("version")
+
+        assert result["python_values"] == ["hello"]
+        assert result["json_values"] == [None]
+        assert result["log_messages"]["info"] == ["Version 1.9"]
+        assert result["error"] is None
+
+    def test_plain_text_fallback(self):
+        """Non-JSON response falls back to text normalization."""
+        client = ChimeraXClient(port=59998)
+        fake_response = self._fake_response(text="UCSF ChimeraX version 1.9")
+
+        with patch.object(client._client, "get", return_value=fake_response):
+            result = client.run_command("version")
+
+        assert result["python_values"] == []
+        assert result["json_values"] == []
+        assert result["log_messages"]["info"] == ["UCSF ChimeraX version 1.9"]
+        assert result["error"] is None
+
+    def test_plain_text_empty(self):
+        """Empty text response produces empty info list."""
+        client = ChimeraXClient(port=59998)
+        fake_response = self._fake_response(text="  ")
+
+        with patch.object(client._client, "get", return_value=fake_response):
+            result = client.run_command("view")
+
+        assert result["log_messages"]["info"] == []
+
+    def test_json_error_preserved(self):
+        """ChimeraX-level error is preserved in result."""
+        client = ChimeraXClient(port=59998)
+        json_body = {
+            "python values": [],
+            "json values": [],
+            "log messages": {},
+            "error": {"type": "UserError", "message": "No such model #5"},
+        }
+        fake_response = self._fake_response(json=json_body)
+
+        with patch.object(client._client, "get", return_value=fake_response):
+            result = client.run_command("close #5")
+
+        assert result["error"]["type"] == "UserError"
+        assert result["error"]["message"] == "No such model #5"
+
+    def test_extract_output(self):
+        """_extract_output joins info messages."""
+        result = {
+            "log_messages": {"info": ["line 1", "line 2"]},
+        }
+        assert ChimeraXClient._extract_output(result) == "line 1\nline 2"
+
+    def test_extract_output_empty(self):
+        """_extract_output returns empty string for no messages."""
+        assert ChimeraXClient._extract_output({}) == ""
+        assert ChimeraXClient._extract_output({"log_messages": {}}) == ""
+
+    def test_get_version_from_json(self):
+        """get_version extracts version from info messages."""
+        client = ChimeraXClient(port=59998)
+
+        def fake_run(cmd: str):
+            return {
+                "python_values": [],
+                "json_values": [None],
+                "log_messages": {"info": ["UCSF ChimeraX version 1.9"]},
+                "error": None,
+            }
+
+        client.run_command = fake_run  # type: ignore[assignment]
+        assert client.get_version() == "UCSF ChimeraX version 1.9"
+
+    def test_get_models_from_json_values(self):
+        """get_models prefers json_values when available."""
+        client = ChimeraXClient(port=59998)
+        model_data = [{"id": "#1", "name": "1a0s"}, {"id": "#2", "name": "1xyz"}]
+
+        def fake_run(cmd: str):
+            return {
+                "python_values": [],
+                "json_values": [model_data],
+                "log_messages": {"info": ["some text"]},
+                "error": None,
+            }
+
+        client.run_command = fake_run  # type: ignore[assignment]
+        assert client.get_models() == model_data
+
+    def test_get_models_falls_back_to_log(self):
+        """get_models falls back to log parsing when json_values is empty."""
+        client = ChimeraXClient(port=59998)
+
+        def fake_run(cmd: str):
+            return {
+                "python_values": [],
+                "json_values": [None],
+                "log_messages": {"info": ["#1 1a0s", "#2 1xyz"]},
+                "error": None,
+            }
+
+        client.run_command = fake_run  # type: ignore[assignment]
+        models = client.get_models()
+        assert models == [{"info": "#1 1a0s"}, {"info": "#2 1xyz"}]
+
+
 class TestScreenshot:
     """Test ChimeraXClient.screenshot() with mocked run_command."""
+
+    def _ok_result(self) -> dict:
+        """Return a normalized successful command result."""
+        return {
+            "python_values": [],
+            "json_values": [None],
+            "log_messages": {},
+            "error": None,
+        }
 
     def test_default_path_generation(self, tmp_path: Path):
         """Auto-generated path uses correct dir and timestamp pattern."""
@@ -69,7 +206,7 @@ class TestScreenshot:
             file_path = Path(parts[1])
             file_path.parent.mkdir(parents=True, exist_ok=True)
             file_path.write_bytes(b"PNG_DATA")
-            return {"status": "ok", "output": ""}
+            return self._ok_result()
 
         client.run_command = fake_run_command  # type: ignore[assignment]
 
@@ -91,7 +228,7 @@ class TestScreenshot:
         def fake_run_command(cmd: str):  # noqa: ARG001
             user_path.parent.mkdir(parents=True, exist_ok=True)
             user_path.write_bytes(b"PNG_DATA")
-            return {"status": "ok", "output": ""}
+            return self._ok_result()
 
         client.run_command = fake_run_command  # type: ignore[assignment]
 
@@ -104,7 +241,7 @@ class TestScreenshot:
         client = ChimeraXClient(port=59998)
 
         def fake_run_command(cmd: str):  # noqa: ARG001
-            return {"status": "ok", "output": ""}
+            return self._ok_result()
 
         client.run_command = fake_run_command  # type: ignore[assignment]
 
