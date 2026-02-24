@@ -35,6 +35,23 @@ Add to your MCP client configuration (e.g. `~/.claude/.mcp.json`):
 }
 ```
 
+### Specifying a ChimeraX version
+
+By default, the server auto-detects the latest installed ChimeraX. To use a specific version, set the `CHIMERAX_PATH` environment variable:
+
+```json
+{
+  "mcpServers": {
+    "chimerax": {
+      "command": "chimerax-mcp",
+      "env": {
+        "CHIMERAX_PATH": "/Applications/ChimeraX-1.9.app/Contents/MacOS/ChimeraX"
+      }
+    }
+  }
+}
+```
+
 ## Available Tools
 
 ### ChimeraX Control

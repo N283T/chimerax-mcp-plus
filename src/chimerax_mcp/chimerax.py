@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import glob
+import logging
 import os
 import platform
+import re
 import subprocess
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -13,6 +15,8 @@ from typing import Any
 from urllib.parse import quote
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -149,8 +153,35 @@ class ChimeraXClient:
         self._client.close()
 
 
+def _version_sort_key(path: str) -> tuple[int, ...]:
+    """Extract version numbers from a ChimeraX path for natural sorting.
+
+    Matches the version segment after "ChimeraX" (e.g., "1.10" from
+    "ChimeraX-1.10.app") and returns a tuple of integers for correct
+    numeric comparison. Digits elsewhere in the path are ignored.
+    """
+    match = re.search(r"ChimeraX[- ]?(\d[\d.]*)", path, re.IGNORECASE)
+    if match:
+        return tuple(int(n) for n in match.group(1).split(".") if n)
+    return ()
+
+
 def detect_chimerax() -> ChimeraXInfo | None:
-    """Auto-detect ChimeraX installation."""
+    """Auto-detect ChimeraX installation.
+
+    The CHIMERAX_PATH environment variable takes priority over auto-detection,
+    allowing users to specify a particular ChimeraX version or installation.
+    """
+    env_path = os.environ.get("CHIMERAX_PATH")
+    if env_path:
+        path = Path(env_path)
+        if path.is_file():
+            return ChimeraXInfo(path=path)
+        logger.warning(
+            "CHIMERAX_PATH=%s does not exist or is not a file, falling back to auto-detection",
+            env_path,
+        )
+
     system = platform.system()
 
     if system == "Darwin":
@@ -162,7 +193,7 @@ def detect_chimerax() -> ChimeraXInfo | None:
         for pattern in patterns:
             matches = glob.glob(pattern)
             if matches:
-                matches.sort(reverse=True)
+                matches.sort(key=_version_sort_key, reverse=True)
                 return ChimeraXInfo(path=Path(matches[0]))
 
     elif system == "Linux":
@@ -184,14 +215,8 @@ def detect_chimerax() -> ChimeraXInfo | None:
         for pattern in patterns:
             matches = glob.glob(pattern)
             if matches:
-                matches.sort(reverse=True)
+                matches.sort(key=_version_sort_key, reverse=True)
                 return ChimeraXInfo(path=Path(matches[0]))
-
-    env_path = os.environ.get("CHIMERAX_PATH")
-    if env_path:
-        path = Path(env_path)
-        if path.exists():
-            return ChimeraXInfo(path=path)
 
     return None
 
