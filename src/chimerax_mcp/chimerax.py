@@ -5,6 +5,7 @@ from __future__ import annotations
 import glob
 import os
 import platform
+import re
 import subprocess
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -149,8 +150,28 @@ class ChimeraXClient:
         self._client.close()
 
 
+def _version_sort_key(path: str) -> tuple[int, ...]:
+    """Extract version numbers from a path for natural sorting.
+
+    Parses version-like segments (e.g., "1.10" from "ChimeraX1.10.app")
+    and returns a tuple of integers for correct numeric comparison.
+    """
+    numbers = re.findall(r"\d+", path)
+    return tuple(int(n) for n in numbers)
+
+
 def detect_chimerax() -> ChimeraXInfo | None:
-    """Auto-detect ChimeraX installation."""
+    """Auto-detect ChimeraX installation.
+
+    The CHIMERAX_PATH environment variable takes priority over auto-detection,
+    allowing users to specify a particular ChimeraX version or installation.
+    """
+    env_path = os.environ.get("CHIMERAX_PATH")
+    if env_path:
+        path = Path(env_path)
+        if path.exists():
+            return ChimeraXInfo(path=path)
+
     system = platform.system()
 
     if system == "Darwin":
@@ -162,7 +183,7 @@ def detect_chimerax() -> ChimeraXInfo | None:
         for pattern in patterns:
             matches = glob.glob(pattern)
             if matches:
-                matches.sort(reverse=True)
+                matches.sort(key=_version_sort_key, reverse=True)
                 return ChimeraXInfo(path=Path(matches[0]))
 
     elif system == "Linux":
@@ -184,14 +205,8 @@ def detect_chimerax() -> ChimeraXInfo | None:
         for pattern in patterns:
             matches = glob.glob(pattern)
             if matches:
-                matches.sort(reverse=True)
+                matches.sort(key=_version_sort_key, reverse=True)
                 return ChimeraXInfo(path=Path(matches[0]))
-
-    env_path = os.environ.get("CHIMERAX_PATH")
-    if env_path:
-        path = Path(env_path)
-        if path.exists():
-            return ChimeraXInfo(path=path)
 
     return None
 

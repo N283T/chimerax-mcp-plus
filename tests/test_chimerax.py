@@ -1,5 +1,6 @@
 """Tests for ChimeraX detection and communication."""
 
+import os
 import platform
 import re
 from pathlib import Path
@@ -8,7 +9,12 @@ from unittest.mock import patch
 import httpx
 import pytest
 
-from chimerax_mcp.chimerax import ChimeraXClient, ChimeraXInfo, detect_chimerax
+from chimerax_mcp.chimerax import (
+    ChimeraXClient,
+    ChimeraXInfo,
+    _version_sort_key,
+    detect_chimerax,
+)
 
 
 class TestChimeraXInfo:
@@ -263,3 +269,55 @@ class TestDetectChimeraX:
         result = detect_chimerax()
         if result:
             assert "ChimeraX" in str(result.path)
+
+    def test_chimerax_path_env_takes_priority(self, tmp_path):
+        """CHIMERAX_PATH env var should override auto-detection."""
+        fake_binary = tmp_path.joinpath("chimerax")
+        fake_binary.touch()
+        with patch.dict(os.environ, {"CHIMERAX_PATH": str(fake_binary)}):
+            result = detect_chimerax()
+        assert result is not None
+        assert result.path == fake_binary
+
+    def test_chimerax_path_env_nonexistent_falls_through(self):
+        """CHIMERAX_PATH pointing to nonexistent path should fall through to auto-detection."""
+        with patch.dict(os.environ, {"CHIMERAX_PATH": "/nonexistent/chimerax"}):
+            result = detect_chimerax()
+        # Should either find via auto-detection or return None, not crash
+
+
+class TestVersionSortKey:
+    def test_single_version_number(self):
+        assert _version_sort_key("/Applications/ChimeraX1.9.app") == (1, 9)
+
+    def test_double_digit_minor(self):
+        assert _version_sort_key("/Applications/ChimeraX1.10.app") == (1, 10)
+
+    def test_sort_order_1_9_vs_1_10(self):
+        paths = [
+            "/Applications/ChimeraX1.10.app/Contents/MacOS/ChimeraX",
+            "/Applications/ChimeraX1.9.app/Contents/MacOS/ChimeraX",
+        ]
+        sorted_paths = sorted(paths, key=_version_sort_key, reverse=True)
+        assert "1.10" in sorted_paths[0]
+        assert "1.9" in sorted_paths[1]
+
+    def test_sort_order_multiple_versions(self):
+        paths = [
+            "/Applications/ChimeraX1.8.app/Contents/MacOS/ChimeraX",
+            "/Applications/ChimeraX1.10.app/Contents/MacOS/ChimeraX",
+            "/Applications/ChimeraX1.9.app/Contents/MacOS/ChimeraX",
+            "/Applications/ChimeraX1.11.app/Contents/MacOS/ChimeraX",
+        ]
+        sorted_paths = sorted(paths, key=_version_sort_key, reverse=True)
+        assert "1.11" in sorted_paths[0]
+        assert "1.10" in sorted_paths[1]
+        assert "1.9" in sorted_paths[2]
+        assert "1.8" in sorted_paths[3]
+
+    def test_no_version_number(self):
+        assert _version_sort_key("/Applications/ChimeraX.app") == ()
+
+    def test_windows_path(self):
+        path = r"C:\Program Files\ChimeraX1.10\bin\ChimeraX-console.exe"
+        assert _version_sort_key(path) == (1, 10)
