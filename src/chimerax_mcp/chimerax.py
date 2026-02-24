@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import glob
+import logging
 import os
 import platform
 import re
@@ -14,6 +15,8 @@ from typing import Any
 from urllib.parse import quote
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -151,13 +154,16 @@ class ChimeraXClient:
 
 
 def _version_sort_key(path: str) -> tuple[int, ...]:
-    """Extract version numbers from a path for natural sorting.
+    """Extract version numbers from a ChimeraX path for natural sorting.
 
-    Parses version-like segments (e.g., "1.10" from "ChimeraX1.10.app")
-    and returns a tuple of integers for correct numeric comparison.
+    Matches the version segment after "ChimeraX" (e.g., "1.10" from
+    "ChimeraX-1.10.app") and returns a tuple of integers for correct
+    numeric comparison. Digits elsewhere in the path are ignored.
     """
-    numbers = re.findall(r"\d+", path)
-    return tuple(int(n) for n in numbers)
+    match = re.search(r"ChimeraX[- ]?(\d[\d.]*)", path, re.IGNORECASE)
+    if match:
+        return tuple(int(n) for n in match.group(1).split(".") if n)
+    return ()
 
 
 def detect_chimerax() -> ChimeraXInfo | None:
@@ -169,8 +175,12 @@ def detect_chimerax() -> ChimeraXInfo | None:
     env_path = os.environ.get("CHIMERAX_PATH")
     if env_path:
         path = Path(env_path)
-        if path.exists():
+        if path.is_file():
             return ChimeraXInfo(path=path)
+        logger.warning(
+            "CHIMERAX_PATH=%s does not exist or is not a file, falling back to auto-detection",
+            env_path,
+        )
 
     system = platform.system()
 

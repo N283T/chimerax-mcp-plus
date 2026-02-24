@@ -283,7 +283,7 @@ class TestDetectChimeraX:
         """CHIMERAX_PATH pointing to nonexistent path should fall through to auto-detection."""
         with patch.dict(os.environ, {"CHIMERAX_PATH": "/nonexistent/chimerax"}):
             result = detect_chimerax()
-        # Should either find via auto-detection or return None, not crash
+        assert result is None or isinstance(result, ChimeraXInfo)
 
 
 class TestVersionSortKey:
@@ -321,3 +321,16 @@ class TestVersionSortKey:
     def test_windows_path(self):
         path = r"C:\Program Files\ChimeraX1.10\bin\ChimeraX-console.exe"
         assert _version_sort_key(path) == (1, 10)
+
+    def test_stray_digits_in_path_ignored(self):
+        """Digits outside the ChimeraX version should not affect sorting."""
+        paths = [
+            "/opt/v2/ChimeraX1.9/bin/ChimeraX",
+            "/opt/v2/ChimeraX1.10/bin/ChimeraX",
+        ]
+        sorted_paths = sorted(paths, key=_version_sort_key, reverse=True)
+        assert "1.10" in sorted_paths[0]
+        assert "1.9" in sorted_paths[1]
+
+    def test_hyphenated_version(self):
+        assert _version_sort_key("/Applications/ChimeraX-1.11.1.app") == (1, 11, 1)
