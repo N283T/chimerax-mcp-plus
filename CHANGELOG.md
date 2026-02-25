@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+- Increased default `wait_seconds` from 10 to 15 for ChimeraX startup
+- Added 3-second initial sleep before polling REST API (ChimeraX needs time to launch)
+- Improved timeout message to indicate process may still be starting
+
+### Added
+- `background` parameter in `chimerax_start` to launch without waiting
+- Better handling for slow startup scenarios
+
 ## [0.1.0] - 2025-02-25
 
 ### Added

@@ -78,14 +78,17 @@ def chimerax_detect() -> dict[str, Any]:
 def chimerax_start(
     port: int = 63269,
     nogui: bool = False,
-    wait_seconds: int = 10,
+    wait_seconds: int = 15,
+    background: bool = False,
 ) -> dict[str, Any]:
     """Start ChimeraX with REST API enabled.
 
     Args:
         port: Port for REST API (default: 63269)
         nogui: Run without GUI (default: False)
-        wait_seconds: Seconds to wait for startup (default: 10)
+        wait_seconds: Seconds to wait for startup (default: 15)
+        background: If True, return immediately and let ChimeraX start in background.
+            Use chimerax_status to check if ready. (default: False)
 
     Returns:
         Status of the startup attempt.
@@ -100,8 +103,16 @@ def chimerax_start(
 
     # Check if we already have a process (might be starting up)
     if _process is not None and _process.poll() is None:
+        if background:
+            return {
+                "status": "starting",
+                "message": "ChimeraX is starting in background. Use chimerax_status to check readiness.",
+            }
         # Process exists and is still running - wait for it
-        for _ in range(wait_seconds * 2):
+        # Initial sleep to allow process to initialize
+        time.sleep(3.0)
+        remaining_checks = (wait_seconds - 3) * 2
+        for _ in range(max(remaining_checks, 1)):
             time.sleep(0.5)
             if client.is_running():
                 try:
@@ -116,7 +127,7 @@ def chimerax_start(
                 }
         return {
             "status": "timeout",
-            "message": f"Process exists but REST API not ready in {wait_seconds}s",
+            "message": f"Process exists but REST API not ready in {wait_seconds}s. ChimeraX may still be starting - try chimerax_status later.",
         }
 
     try:
@@ -124,7 +135,17 @@ def chimerax_start(
     except RuntimeError as e:
         return {"status": "error", "message": str(e)}
 
-    for _ in range(wait_seconds * 2):
+    if background:
+        return {
+            "status": "starting",
+            "message": "ChimeraX is starting in background. Use chimerax_status to check readiness.",
+        }
+
+    # Initial sleep to allow ChimeraX to launch (especially important on macOS)
+    time.sleep(3.0)
+
+    remaining_checks = (wait_seconds - 3) * 2
+    for _ in range(max(remaining_checks, 1)):
         time.sleep(0.5)
         if client.is_running():
             try:
@@ -137,7 +158,10 @@ def chimerax_start(
                 "version": version,
             }
 
-    return {"status": "timeout", "message": f"ChimeraX did not respond within {wait_seconds}s"}
+    return {
+        "status": "timeout",
+        "message": f"ChimeraX did not respond within {wait_seconds}s. The process is still running - try chimerax_status in a few seconds.",
+    }
 
 
 @mcp.tool()
