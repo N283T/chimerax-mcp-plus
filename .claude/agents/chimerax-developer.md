@@ -11,9 +11,9 @@ Expert agent for developing ChimeraX bundles (extensions/plugins). Specializes i
 
 ## Prerequisites
 
-- **echidna**: CLI tool for ChimeraX bundle development
-  - Install from https://github.com/N283T/echidna
-  - `pip install echidna` or `uv tool install echidna`
+- **echi** (echidna): CLI tool for ChimeraX bundle development
+  - Install: `curl -sSfL https://raw.githubusercontent.com/N283T/echidna/main/install.sh | sh`
+  - Docs: https://n283t.github.io/echidna
 
 ## Development Workflow
 
@@ -21,11 +21,11 @@ Expert agent for developing ChimeraX bundles (extensions/plugins). Specializes i
 
 ```bash
 # Initialize project
-echidna init my-bundle
+echi init my-bundle
 cd my-bundle
 
 # Set up IDE (optional but recommended)
-echidna setup-ide
+echi venv
 ```
 
 ### 2. Bundle Structure
@@ -81,13 +81,16 @@ def initialize(session, bundle_info):
 
 ```bash
 # Validate structure
-echidna validate
+echi validate
 
 # Build, install, and launch ChimeraX
-echidna run
+echi run
 
 # Run tests
-echidna test
+echi test
+
+# Watch for changes and auto-rebuild
+echi watch
 ```
 
 ## Bundle Types
@@ -240,14 +243,17 @@ mycommand #1
 ## Debugging
 
 ```bash
+# Debug mode
+echi debug
+
 # Verbose output
-echidna -vvv run
+echi -vvv run
 
 # Check Python path
-echidna python -c "import sys; print(sys.path)"
+echi python
 
-# Interactive Python
-echidna python
+# Open documentation
+echi docs
 ```
 
 ## Troubleshooting
@@ -257,21 +263,32 @@ echidna python
 | Import error | Check module name matches pyproject.toml |
 | Command not found | Verify register_command is called in __init__.py |
 | GUI not showing | Check tool_window.manage("show") |
-| Test failures | Run with `echidna -vvv test` |
+| Test failures | Run with `echi -vvv test` |
 
-## echidna Commands Reference
+## echi Commands Reference
 
 | Command | Description |
 |---------|-------------|
-| `echidna init` | Generate new bundle project |
-| `echidna build` | Build wheel package |
-| `echidna install` | Install bundle to ChimeraX |
-| `echidna run` | Build, install, and launch ChimeraX |
-| `echidna test` | Run pytest with ChimeraX Python |
-| `echidna setup-ide` | Set up IDE/type checker environment |
-| `echidna validate` | Validate bundle structure |
-| `echidna info` | Show bundle information |
-| `echidna clean` | Clean build artifacts |
+| `echi init` | Generate new bundle project |
+| `echi build` | Build wheel package |
+| `echi install` | Install bundle to ChimeraX |
+| `echi run` | Build, install, and launch ChimeraX |
+| `echi test` | Run pytest with ChimeraX Python |
+| `echi watch` | Watch for changes and auto-rebuild |
+| `echi debug` | Launch ChimeraX in debug mode |
+| `echi venv` | Set up IDE/type checker environment |
+| `echi clean` | Clean build artifacts |
+| `echi validate` | Validate bundle structure |
+| `echi info` | Show bundle information |
+| `echi python` | Show ChimeraX Python info |
+| `echi packages` | Manage ChimeraX Python packages |
+| `echi version` | Manage bundle version |
+| `echi workspace` | Manage multi-bundle workspaces |
+| `echi docs` | Open ChimeraX documentation |
+| `echi publish` | Publish bundle to ChimeraX Toolshed |
+| `echi completions` | Generate shell completions |
+
+Run `echi <command> --help` for details.
 
 ## Resources
 
@@ -279,3 +296,4 @@ echidna python
 - `/explore-chimerax` - Command documentation
 - [ChimeraX Toolshed](https://cxtoolshed.rbvi.ucsf.edu/) - Existing bundles
 - [echidna GitHub](https://github.com/N283T/echidna) - Tool issues and docs
+- [echidna Docs](https://n283t.github.io/echidna) - Full documentation
