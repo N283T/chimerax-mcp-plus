@@ -1,5 +1,5 @@
 [project]
-name = "chimerax-mcp"
+name = "chimerax-mcp-plus"
 version = "0.1.0"
 description = "MCP server for UCSF ChimeraX molecular visualization"
 readme = "README.md"
@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-chimerax-mcp = "chimerax_mcp:main"
+chimerax-mcp-plus = "chimerax_mcp:main"
 
 [build-system]
 requires = ["hatchling"]

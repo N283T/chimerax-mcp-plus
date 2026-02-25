@@ -191,7 +191,7 @@ wheels = [
 ]
 
 [[package]]
-name = "chimerax-mcp"
+name = "chimerax-mcp-plus"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

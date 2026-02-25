@@ -18,7 +18,7 @@ MCP server for controlling UCSF ChimeraX molecular visualization.
 uv tool install git+https://github.com/N283T/chimerax-mcp-plus
 
 # Update
-uv tool upgrade chimerax-mcp
+uv tool upgrade chimerax-mcp-plus
 ```
 
 ## Configuration
@@ -29,7 +29,7 @@ Add to your MCP client configuration (e.g. `~/.claude/.mcp.json`):
 {
   "mcpServers": {
     "chimerax": {
-      "command": "chimerax-mcp"
+      "command": "chimerax-mcp-plus"
     }
   }
 }
@@ -43,7 +43,7 @@ By default, the server auto-detects the latest installed ChimeraX. To use a spec
 {
   "mcpServers": {
     "chimerax": {
-      "command": "chimerax-mcp",
+      "command": "chimerax-mcp-plus",
       "env": {
         "CHIMERAX_PATH": "/Applications/ChimeraX-1.9.app/Contents/MacOS/ChimeraX"
       }
@@ -103,7 +103,7 @@ ln -s /path/to/chimerax-mcp-plus/skills/* ~/.claude/skills/
 
 This MCP server communicates with ChimeraX via its REST API:
 
-1. ChimeraX is started with `remotecontrol rest start port 63269 json true`
+1. ChimeraX is started with `remotecontrol rest start port 63269 json true log true`
 2. Commands are sent via HTTP GET to `http://127.0.0.1:63269/run?command=...`
 3. Results are parsed and returned to the AI client
 
