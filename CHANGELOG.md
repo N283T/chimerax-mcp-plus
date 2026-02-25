@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- Claude Code agents for specialized ChimeraX workflows:
+  - `chimerax-operator`: MCP operator for visualization and manipulation
+  - `structural-biologist`: Structural biology analysis expert
+  - `chimerax-developer`: Bundle/extension development with echidna
+
 ### Changed
 - Increased default `wait_seconds` from 10 to 15 for ChimeraX startup
 - Added 3-second initial sleep before polling REST API (ChimeraX needs time to launch)
