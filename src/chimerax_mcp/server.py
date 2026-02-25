@@ -78,14 +78,14 @@ def chimerax_detect() -> dict[str, Any]:
 def chimerax_start(
     port: int = 63269,
     nogui: bool = False,
-    wait_seconds: int = 5,
+    wait_seconds: int = 10,
 ) -> dict[str, Any]:
     """Start ChimeraX with REST API enabled.
 
     Args:
         port: Port for REST API (default: 63269)
         nogui: Run without GUI (default: False)
-        wait_seconds: Seconds to wait for startup (default: 5)
+        wait_seconds: Seconds to wait for startup (default: 10)
 
     Returns:
         Status of the startup attempt.
@@ -93,8 +93,31 @@ def chimerax_start(
     global _process
 
     client = get_client()
+
+    # Check if already running via REST API
     if client.is_running():
         return {"status": "already_running", "message": "ChimeraX is already running"}
+
+    # Check if we already have a process (might be starting up)
+    if _process is not None and _process.poll() is None:
+        # Process exists and is still running - wait for it
+        for _ in range(wait_seconds * 2):
+            time.sleep(0.5)
+            if client.is_running():
+                try:
+                    version = client.get_version()
+                except httpx.HTTPError:
+                    version = "unknown"
+                return {
+                    "status": "started",
+                    "port": port,
+                    "version": version,
+                    "note": "Connected to existing process",
+                }
+        return {
+            "status": "timeout",
+            "message": f"Process exists but REST API not ready in {wait_seconds}s",
+        }
 
     try:
         _process = start_chimerax(port=port, nogui=nogui)
