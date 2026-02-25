@@ -185,13 +185,16 @@ def _format_response(result: dict[str, Any]) -> dict[str, Any]:
     """Format a successful ChimeraX response for MCP tool output."""
     response: dict[str, Any] = {"status": "ok"}
 
-    # Main output from info-level log messages
-    info = result.get("log_messages", {}).get("info", [])
-    if info:
-        response["output"] = "\n".join(info)
+    # Main output from log messages (both 'info' and 'note' levels)
+    msgs = result.get("log_messages", {})
+    output_lines: list[str] = []
+    for level in ("info", "note"):
+        output_lines.extend(msgs.get(level, []))
+    if output_lines:
+        response["output"] = "\n".join(output_lines)
 
     # Include warnings
-    warnings = result.get("log_messages", {}).get("warning", [])
+    warnings = msgs.get("warning", [])
     if warnings:
         response["warnings"] = warnings
 
