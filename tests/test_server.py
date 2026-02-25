@@ -837,7 +837,7 @@ class TestBuildToolScreenshotScript:
         """Generated script includes try/except for Qt errors."""
         script = _build_tool_screenshot_script(tool_name="Log", output_path="/tmp/out.png")
         assert "except Exception as exc:" in script
-        assert "print('ERROR: ' + str(exc))" in script
+        assert "session.logger.info('ERROR: ' + str(exc))" in script
 
     def test_no_sys_exit(self):
         """Generated script does not call sys.exit."""
@@ -850,14 +850,14 @@ class TestBuildToolScreenshotScript:
         assert "if not pixmap.save(output_path):" in script
 
     def test_tool_not_found_marker(self):
-        """Generated script prints ERROR marker when tool not found."""
+        """Generated script logs ERROR marker when tool not found."""
         script = _build_tool_screenshot_script(tool_name="Missing", output_path="/tmp/out.png")
-        assert "print('ERROR: Tool '" in script
+        assert "session.logger.info('ERROR: Tool '" in script
 
     def test_success_marker(self):
-        """Generated script prints OK marker on success."""
+        """Generated script logs OK marker on success."""
         script = _build_tool_screenshot_script(tool_name="Log", output_path="/tmp/out.png")
-        assert "print('OK: ' + output_path)" in script
+        assert "session.logger.info(f'OK: {output_path}')" in script
 
 
 class TestConstants:

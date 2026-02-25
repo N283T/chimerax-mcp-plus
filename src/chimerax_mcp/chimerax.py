@@ -86,8 +86,11 @@ class ChimeraXClient:
     def _extract_output(result: dict[str, Any]) -> str:
         """Extract human-readable output from a command result."""
         msgs = result.get("log_messages", {})
-        info = msgs.get("info", [])
-        return "\n".join(info)
+        # Include both 'info' and 'note' levels (session.logger.info() -> 'note')
+        lines: list[str] = []
+        for level in ("info", "note"):
+            lines.extend(msgs.get(level, []))
+        return "\n".join(lines)
 
     def get_version(self) -> str:
         """Get ChimeraX version."""
@@ -236,7 +239,7 @@ def start_chimerax(
     cmd = [str(chimerax_path)]
     if nogui:
         cmd.append("--nogui")
-    cmd.extend(["--cmd", f"remotecontrol rest start port {port} json true"])
+    cmd.extend(["--cmd", f"remotecontrol rest start port {port} json true log true"])
 
     return subprocess.Popen(
         cmd,

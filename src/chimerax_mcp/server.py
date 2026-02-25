@@ -357,8 +357,9 @@ def _build_tool_screenshot_script(
     finds a tool by name, optionally resizes its Qt widget, captures it via
     ``QWidget.grab()``, optionally adds white padding, and saves the result.
 
-    The script communicates results back via stdout markers:
-    ``OK: <path>`` on success, ``ERROR: <message>`` on failure.
+    The script communicates results back via session.logger.info() which
+    appears in JSON response log_messages: ``OK: <path>`` on success,
+    ``ERROR: <message>`` on failure.
 
     Args:
         tool_name: Name of the ChimeraX tool to capture.
@@ -387,7 +388,7 @@ def _build_tool_screenshot_script(
         "        break",
         "",
         "if target is None:",
-        "    print('ERROR: Tool ' + repr(tool_name) + ' not found')",
+        "    session.logger.info('ERROR: Tool ' + repr(tool_name) + ' not found')",
         "else:",
         "    try:",
         "        ua = target.tool_window.ui_area",
@@ -418,11 +419,11 @@ def _build_tool_screenshot_script(
         "            pixmap = padded",
         "",
         "        if not pixmap.save(output_path):",
-        "            print('ERROR: Failed to save screenshot to ' + repr(output_path))",
+        "            session.logger.info(f'ERROR: Failed to save screenshot to {output_path!r}')",
         "        else:",
-        "            print('OK: ' + output_path)",
+        "            session.logger.info(f'OK: {output_path}')",
         "    except Exception as exc:",
-        "        print('ERROR: ' + str(exc))",
+        "        session.logger.info('ERROR: ' + str(exc))",
     ]
     return "\n".join(lines)
 
