@@ -59,13 +59,20 @@ By default, the server auto-detects the latest installed ChimeraX. To use a spec
 | Tool | Description |
 |------|-------------|
 | `chimerax_detect` | Detect ChimeraX installation |
-| `chimerax_start` | Start ChimeraX with REST API enabled |
+| `chimerax_start` | Start ChimeraX with REST API enabled (supports `background` mode) |
 | `chimerax_stop` | Stop the ChimeraX process |
 | `chimerax_status` | Check if ChimeraX is running |
 | `chimerax_run` | Execute any ChimeraX command |
 | `chimerax_models` | List open models |
+
+### Screenshot Management
+
+| Tool | Description |
+|------|-------------|
 | `chimerax_screenshot` | Capture screenshot of the 3D view |
 | `chimerax_tool_screenshot` | Capture screenshot of a tool window |
+| `chimerax_list_screenshots` | List all saved screenshots |
+| `chimerax_cleanup_screenshots` | Delete old screenshots (e.g., `older_than_days=7`) |
 
 ### View Management
 
