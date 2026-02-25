@@ -670,3 +670,101 @@ def chimerax_session_open(path: str) -> dict[str, Any]:
         Result of the open command.
     """
     return _run_command(f"open {path}")
+
+
+def _get_screenshots_dir() -> Path:
+    """Get the screenshots directory path."""
+    return Path.home().joinpath(".local", "share", "chimerax-mcp", "screenshots")
+
+
+@mcp.tool()
+def chimerax_list_screenshots() -> dict[str, Any]:
+    """List all screenshots saved by chimerax-mcp.
+
+    Returns:
+        List of screenshot files with their details (path, size, modification time).
+    """
+    screenshots_dir = _get_screenshots_dir()
+    if not screenshots_dir.exists():
+        return {"status": "ok", "screenshots": [], "message": "No screenshots directory found"}
+
+    screenshots: list[dict[str, Any]] = []
+    for f in screenshots_dir.iterdir():
+        if f.is_file():
+            stat = f.stat()
+            screenshots.append(
+                {
+                    "path": str(f),
+                    "name": f.name,
+                    "size_bytes": stat.st_size,
+                    "modified": datetime.datetime.fromtimestamp(
+                        stat.st_mtime, tz=datetime.timezone.utc
+                    )
+                    .isoformat()
+                    .replace("+00:00", "Z"),
+                }
+            )
+
+    # Sort by modification time, newest first
+    screenshots.sort(key=lambda x: x["modified"], reverse=True)
+
+    return {
+        "status": "ok",
+        "count": len(screenshots),
+        "directory": str(screenshots_dir),
+        "screenshots": screenshots,
+    }
+
+
+@mcp.tool()
+def chimerax_cleanup_screenshots(older_than_days: int = 7) -> dict[str, Any]:
+    """Delete old screenshots to free up disk space.
+
+    Args:
+        older_than_days: Delete screenshots older than this many days (default: 7).
+            Set to 0 to delete all screenshots.
+
+    Returns:
+        Number of deleted files and freed space.
+    """
+    screenshots_dir = _get_screenshots_dir()
+    if not screenshots_dir.exists():
+        return {"status": "ok", "deleted": 0, "message": "No screenshots directory found"}
+
+    cutoff_time = time.time() - (older_than_days * 24 * 60 * 60)
+
+    deleted_count = 0
+    freed_bytes = 0
+    errors: list[str] = []
+
+    for f in screenshots_dir.iterdir():
+        if f.is_file():
+            stat = f.stat()
+            if older_than_days == 0 or stat.st_mtime < cutoff_time:
+                try:
+                    freed_bytes += stat.st_size
+                    f.unlink()
+                    deleted_count += 1
+                except OSError as e:
+                    errors.append(f"{f.name}: {e}")
+
+    result: dict[str, Any] = {
+        "status": "ok" if not errors else "partial",
+        "deleted": deleted_count,
+        "freed_bytes": freed_bytes,
+        "freed_human": _format_bytes(freed_bytes),
+    }
+    if errors:
+        result["errors"] = errors
+
+    return result
+
+
+def _format_bytes(size: int) -> str:
+    """Format bytes as human-readable string."""
+    float_size = float(size)
+    for unit in ["B", "KB", "MB", "GB"]:
+        if abs(float_size) < 1024:
+            return f"{float_size:.1f} {unit}"
+        float_size /= 1024
+    return f"{float_size:.1f} TB"

@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - `background` parameter in `chimerax_start` to launch without waiting
+- `chimerax_list_screenshots()` to list all saved screenshots
+- `chimerax_cleanup_screenshots(older_than_days)` to delete old screenshots
 - Better handling for slow startup scenarios
 
 ## [0.1.0] - 2025-02-25
