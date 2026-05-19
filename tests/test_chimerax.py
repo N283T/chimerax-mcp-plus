@@ -49,6 +49,21 @@ class TestChimeraXClient:
         client = ChimeraXClient(port=59999)
         assert client.is_running() is False
 
+    def test_is_running_uses_cmdline_page_not_version_command(self):
+        client = ChimeraXClient(port=59998)
+        urls: list[str] = []
+
+        def fake_get(url: str):
+            urls.append(url)
+            request = httpx.Request("GET", url)
+            return httpx.Response(200, request=request, text="<html>cmdline</html>")
+
+        with patch.object(client._client, "get", side_effect=fake_get):
+            assert client.is_running() is True
+
+        assert urls == ["http://127.0.0.1:59998/cmdline.html"]
+        assert all("command=version" not in url for url in urls)
+
     def test_context_manager(self):
         with ChimeraXClient(port=59999) as client:
             assert client.host == "127.0.0.1"

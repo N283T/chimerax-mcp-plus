@@ -22,6 +22,7 @@ from chimerax_mcp.server import (
     chimerax_rich_log,
     chimerax_rich_report,
     chimerax_screenshot,
+    chimerax_start,
     chimerax_status,
     chimerax_tool_screenshot,
     chimerax_turn,
@@ -184,6 +185,64 @@ class TestStatusTool:
         result = chimerax_status.fn()
         assert result["status"] == "ok"
         assert result["running"] is False
+
+    def test_status_running_omits_version_by_default(self):
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+
+        def fail_get_version():
+            raise AssertionError("status should not fetch version by default")
+
+        mock_client.get_version = fail_get_version  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_status.fn()
+
+        assert result == {"status": "ok", "running": True}
+
+    def test_status_running_fetches_version_when_requested(self):
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.get_version = lambda: "UCSF ChimeraX version 1.11.1"  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_status.fn(include_version=True)
+
+        assert result == {
+            "status": "ok",
+            "running": True,
+            "version": "UCSF ChimeraX version 1.11.1",
+        }
+
+
+class TestStartTool:
+    def test_start_already_running_omits_version_by_default(self):
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+
+        def fail_get_version():
+            raise AssertionError("start should not fetch version by default")
+
+        mock_client.get_version = fail_get_version  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_start.fn()
+
+        assert result == {"status": "already_running", "message": "ChimeraX is already running"}
+
+    def test_start_already_running_fetches_version_when_requested(self):
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.get_version = lambda: "UCSF ChimeraX version 1.11.1"  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_start.fn(include_version=True)
+
+        assert result == {
+            "status": "already_running",
+            "message": "ChimeraX is already running",
+            "version": "UCSF ChimeraX version 1.11.1",
+        }
 
 
 class TestViewTool:
@@ -953,6 +1012,63 @@ class TestRichLog:
 
         assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
 
+    def test_rich_log_saves_generated_html(self, tmp_path: Path):
+        mock_client = ChimeraXClient(port=59998)
+        html_path = tmp_path.joinpath("reports", "summary.html")
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(
+                html="<p>Saved body</p>",
+                title="Saved <Report>",
+                save_html_path=str(html_path),
+            )
+
+        assert result["status"] == "ok"
+        assert result["html_path"] == str(html_path)
+        saved_html = html_path.read_text()
+        assert "Saved &lt;Report&gt;" in saved_html
+        assert "<p>Saved body</p>" in saved_html
+
+    def test_rich_log_rejects_existing_html_save_path_without_overwrite(self, tmp_path: Path):
+        mock_client = ChimeraXClient(port=59998)
+        commands_run: list[str] = []
+        html_path = tmp_path.joinpath("existing.html")
+        html_path.write_text("old")
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            commands_run.append(cmd)
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(
+                html="<p>New body</p>",
+                save_html_path=str(html_path),
+            )
+
+        assert result["status"] == "error"
+        assert "already exists" in result["message"]
+        assert html_path.read_text() == "old"
+        assert commands_run == []
+
     def test_rich_log_sends_runscript_when_running(self):
         mock_client = ChimeraXClient(port=59998)
         commands_run: list[str] = []
@@ -1231,6 +1347,38 @@ class TestRichReport:
         assert "#da3633" in html
         assert "His94/96/119" in html
 
+    def test_build_rich_report_html_renders_progress_and_columns(self):
+        html = _build_rich_report_html(
+            title="Layout report",
+            blocks=[
+                {
+                    "type": "progress",
+                    "label": "Model confidence",
+                    "value": 82,
+                    "max": 100,
+                    "color": "#238636",
+                },
+                {
+                    "type": "columns",
+                    "items": [
+                        {"type": "paragraph", "text": "Left column"},
+                        {
+                            "type": "table",
+                            "columns": ["Metric", "Value"],
+                            "rows": [["Atoms", "327"]],
+                        },
+                    ],
+                },
+            ],
+        )
+
+        assert "Model confidence" in html
+        assert "82%" in html
+        assert "width:82.0%" in html
+        assert "#238636" in html
+        assert "Left column" in html
+        assert "Atoms" in html
+
     def test_rich_report_rejects_empty_title(self):
         result = chimerax_rich_report.fn(title="  ")
         assert result["status"] == "error"
@@ -1261,12 +1409,25 @@ class TestRichReport:
         assert result["status"] == "error"
         assert "blocks[0].rows" in result["message"]
 
+        result = chimerax_rich_report.fn(
+            title="Report", blocks=[{"type": "columns", "items": "not-a-list"}]
+        )
+        assert result["status"] == "error"
+        assert "blocks[0].items" in result["message"]
+
     def test_rich_report_builds_html_and_writes_it(self):
         captured: dict[str, str] = {}
 
-        def fake_write_rich_log(html: str, level: str):
+        def fake_write_rich_log(
+            html: str,
+            level: str,
+            save_html_path: str | None = None,
+            overwrite: bool = False,
+        ):
             captured["html"] = html
             captured["level"] = level
+            captured["save_html_path"] = save_html_path or ""
+            captured["overwrite"] = str(overwrite)
             return {"status": "ok", "level": level, "message": "Rich log written"}
 
         with patch("chimerax_mcp.server._write_rich_log", side_effect=fake_write_rich_log):
@@ -1274,6 +1435,8 @@ class TestRichReport:
                 title="Analysis Summary",
                 subtitle="Composer output",
                 theme="dark",
+                save_html_path="/tmp/report.html",
+                overwrite=True,
                 blocks=[
                     {"type": "cards", "items": [{"label": "Models", "value": 1}]},
                     {"type": "paragraph", "text": "Complete"},
@@ -1286,3 +1449,5 @@ class TestRichReport:
         assert "Composer output" in captured["html"]
         assert "Models" in captured["html"]
         assert "Complete" in captured["html"]
+        assert captured["save_html_path"] == "/tmp/report.html"
+        assert captured["overwrite"] == "True"

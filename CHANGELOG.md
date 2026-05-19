@@ -9,12 +9,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - `chimerax_rich_log()` to write trusted HTML directly to the ChimeraX Log.
 - `chimerax_rich_report()` as a themed block composer for dashboard-like ChimeraX Log output.
+- Optional `save_html_path` and `overwrite` parameters for rich-log tools to save generated HTML.
+- `progress` and `columns` blocks for `chimerax_rich_report()`.
 - Claude Code agents for specialized ChimeraX workflows:
   - `chimerax-operator`: MCP operator for visualization and manipulation
   - `structural-biologist`: Structural biology analysis expert
   - `chimerax-developer`: Bundle/extension development with echidna
 
 ### Changed
+- Running-state checks now use the REST `cmdline.html` page instead of running `version`, avoiding routine Log spam.
+- `chimerax_start()` and `chimerax_status()` only run `version` when `include_version=true`.
 - Made `chimerax_rich_report(theme="auto")` follow light/dark appearance via CSS color-scheme media queries.
 - Removed private rich-log success sentinels from the visible ChimeraX Log output.
 - Reworked `chimerax_rich_report()` into a themed block composer for dashboard-like ChimeraX Log output.

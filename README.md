@@ -60,9 +60,9 @@ By default, the server auto-detects the latest installed ChimeraX. To use a spec
 | Tool | Description |
 |------|-------------|
 | `chimerax_detect` | Detect ChimeraX installation |
-| `chimerax_start` | Start ChimeraX with REST API enabled (supports `background` mode) |
+| `chimerax_start` | Start ChimeraX with REST API enabled (supports `background` and optional `include_version` mode) |
 | `chimerax_stop` | Stop the ChimeraX process |
-| `chimerax_status` | Check if ChimeraX is running |
+| `chimerax_status` | Check if ChimeraX is running without logging `version` unless `include_version=true` |
 | `chimerax_run` | Execute any ChimeraX command |
 | `chimerax_models` | List open models |
 
@@ -79,10 +79,10 @@ By default, the server auto-detects the latest installed ChimeraX. To use a spec
 
 | Tool | Description |
 |------|-------------|
-| `chimerax_rich_log` | Write trusted caller-provided HTML to the ChimeraX Log |
-| `chimerax_rich_report` | Compose a themed rich HTML report from flexible blocks such as cards, tables, badges, callouts, legends, and raw HTML |
+| `chimerax_rich_log` | Write trusted caller-provided HTML to the ChimeraX Log, optionally saving the generated HTML |
+| `chimerax_rich_report` | Compose a themed rich HTML report from flexible blocks such as cards, tables, progress bars, columns, badges, callouts, legends, and raw HTML |
 
-`chimerax_rich_log` passes HTML through to ChimeraX with `is_html=True`; only use it with trusted input. `chimerax_rich_report` escapes plain text fields but allows raw HTML blocks for trusted local reports. Use `theme="auto"` to let generated reports follow the ChimeraX/system light or dark appearance where Qt WebEngine supports `prefers-color-scheme`; explicit `theme="light"` and `theme="dark"` remain available.
+`chimerax_rich_log` passes HTML through to ChimeraX with `is_html=True`; only use it with trusted input. `chimerax_rich_report` escapes plain text fields but allows raw HTML blocks for trusted local reports. Use `theme="auto"` to let generated reports follow the ChimeraX/system light or dark appearance where Qt WebEngine supports `prefers-color-scheme`; explicit `theme="light"` and `theme="dark"` remain available. Pass `save_html_path` to either rich-log tool to save the exact generated HTML locally; existing files require `overwrite=true`.
 
 ### View Management
 
@@ -138,7 +138,8 @@ This MCP server communicates with ChimeraX via its REST API:
 
 1. ChimeraX is started with `remotecontrol rest start port 63269 json true log true`
 2. Commands are sent via HTTP GET to `http://127.0.0.1:63269/run?command=...`
-3. Results are parsed and returned to the AI client
+3. Running-state checks use `http://127.0.0.1:63269/cmdline.html` so routine MCP calls do not spam the ChimeraX Log with `version`
+4. Results are parsed and returned to the AI client
 
 ## Rich Log Examples
 
@@ -159,6 +160,7 @@ Themed block-composer report:
   "subtitle": "PDB 1CA2 · Zn²⁺ metalloenzyme",
   "theme": "auto",
   "accent_color": "#58a6ff",
+  "save_html_path": "/tmp/ca2-report.html",
   "blocks": [
     {
       "type": "cards",
@@ -183,6 +185,20 @@ Themed block-composer report:
           "His94, His96, His119",
           {"text": "orange", "style": "background:#fb8500;color:white;font-weight:800;"}
         ]
+      ]
+    },
+    {
+      "type": "progress",
+      "label": "Active-site completeness",
+      "value": 4,
+      "max": 4,
+      "color": "#238636"
+    },
+    {
+      "type": "columns",
+      "items": [
+        {"type": "paragraph", "text": "Left column narrative."},
+        {"type": "paragraph", "text": "Right column notes."}
       ]
     },
     {

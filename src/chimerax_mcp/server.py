@@ -36,10 +36,12 @@ VALID_RICH_REPORT_BLOCK_TYPES = {
     "badges",
     "callout",
     "cards",
+    "columns",
     "heading",
     "html",
     "legend",
     "paragraph",
+    "progress",
     "table",
 }
 _RESET_COMMANDS = [
@@ -93,6 +95,7 @@ def chimerax_start(
     nogui: bool = False,
     wait_seconds: int = 15,
     background: bool = False,
+    include_version: bool = False,
 ) -> dict[str, Any]:
     """Start ChimeraX with REST API enabled.
 
@@ -102,6 +105,9 @@ def chimerax_start(
         wait_seconds: Seconds to wait for startup (default: 15)
         background: If True, return immediately and let ChimeraX start in background.
             Use chimerax_status to check if ready. (default: False)
+        include_version: If True, run the ChimeraX ``version`` command once
+            after connecting and include it in the response. Defaults to False
+            to avoid writing version checks to the ChimeraX Log.
 
     Returns:
         Status of the startup attempt.
@@ -112,7 +118,13 @@ def chimerax_start(
 
     # Check if already running via REST API
     if client.is_running():
-        return {"status": "already_running", "message": "ChimeraX is already running"}
+        response = {"status": "already_running", "message": "ChimeraX is already running"}
+        if include_version:
+            try:
+                response["version"] = client.get_version()
+            except httpx.HTTPError:
+                response["version"] = "unknown"
+        return response
 
     # Check if we already have a process (might be starting up)
     if _process is not None and _process.poll() is None:
@@ -130,16 +142,17 @@ def chimerax_start(
         for _ in range(max(remaining_checks, 1)):
             time.sleep(0.5)
             if client.is_running():
-                try:
-                    version = client.get_version()
-                except httpx.HTTPError:
-                    version = "unknown"
-                return {
+                response = {
                     "status": "started",
                     "port": port,
-                    "version": version,
                     "note": "Connected to existing process",
                 }
+                if include_version:
+                    try:
+                        response["version"] = client.get_version()
+                    except httpx.HTTPError:
+                        response["version"] = "unknown"
+                return response
         return {
             "status": "timeout",
             "message": (
@@ -168,15 +181,16 @@ def chimerax_start(
     for _ in range(max(remaining_checks, 1)):
         time.sleep(0.5)
         if client.is_running():
-            try:
-                version = client.get_version()
-            except httpx.HTTPError:
-                version = "unknown"
-            return {
+            response = {
                 "status": "started",
                 "port": port,
-                "version": version,
             }
+            if include_version:
+                try:
+                    response["version"] = client.get_version()
+                except httpx.HTTPError:
+                    response["version"] = "unknown"
+            return response
 
     return {
         "status": "timeout",
@@ -212,19 +226,26 @@ def chimerax_stop() -> dict[str, Any]:
 
 
 @mcp.tool()
-def chimerax_status() -> dict[str, Any]:
+def chimerax_status(include_version: bool = False) -> dict[str, Any]:
     """Check if ChimeraX REST server is running.
+
+    Args:
+        include_version: If True, run the ChimeraX ``version`` command once
+            and include it in the response. Defaults to False to avoid writing
+            version checks to the ChimeraX Log.
 
     Returns:
         Connection status and version if running.
     """
     client = get_client()
     if client.is_running():
-        try:
-            version = client.get_version()
-        except httpx.HTTPError:
-            version = "unknown"
-        return {"status": "ok", "running": True, "version": version}
+        response: dict[str, Any] = {"status": "ok", "running": True}
+        if include_version:
+            try:
+                response["version"] = client.get_version()
+            except httpx.HTTPError:
+                response["version"] = "unknown"
+        return response
     return {"status": "ok", "running": False}
 
 
@@ -351,11 +372,46 @@ def _build_rich_log_script(html: str, level: str, marker_id: str | None = None) 
     return "\n".join(lines)
 
 
-def _write_rich_log(html: str, level: str) -> dict[str, Any]:
+def _prepare_rich_html_save_path(
+    save_html_path: str | None,
+    overwrite: bool,
+) -> tuple[Path | None, dict[str, Any] | None]:
+    """Validate an optional rich HTML save path before writing to ChimeraX."""
+    if save_html_path is None:
+        return None, None
+
+    path_str = str(save_html_path).strip()
+    if not path_str:
+        return None, {"status": "error", "message": "save_html_path must not be empty"}
+
+    path = Path(path_str).expanduser()
+    if path.exists() and not overwrite:
+        return (
+            None,
+            {
+                "status": "error",
+                "message": f"HTML save path already exists: {path}",
+            },
+        )
+    if path.exists() and path.is_dir():
+        return None, {"status": "error", "message": f"HTML save path is a directory: {path}"}
+    return path, None
+
+
+def _write_rich_log(
+    html: str,
+    level: str,
+    save_html_path: str | None = None,
+    overwrite: bool = False,
+) -> dict[str, Any]:
     """Execute rich HTML logging inside ChimeraX."""
     client = get_client()
     if not client.is_running():
         return {"status": "error", "message": "ChimeraX is not running"}
+
+    html_path, save_error = _prepare_rich_html_save_path(save_html_path, overwrite)
+    if save_error is not None:
+        return save_error
 
     script = _build_rich_log_script(html=html, level=level)
     fd, script_path_str = tempfile.mkstemp(suffix=".py", prefix="chimerax_rich_log_")
@@ -375,7 +431,18 @@ def _write_rich_log(html: str, level: str) -> dict[str, Any]:
                 }
             return {"status": "error", "error_type": "Unknown", "message": str(err)}
 
-        return {"status": "ok", "level": level, "message": "Rich log written"}
+        response = {"status": "ok", "level": level, "message": "Rich log written"}
+        if html_path is not None:
+            try:
+                html_path.parent.mkdir(parents=True, exist_ok=True)
+                html_path.write_text(html)
+            except OSError as exc:
+                return {
+                    "status": "error",
+                    "message": f"Rich log written, but failed to save HTML: {exc}",
+                }
+            response["html_path"] = str(html_path)
+        return response
     except httpx.HTTPError as e:
         return {"status": "error", "message": f"HTTP error: {e}"}
     finally:
@@ -532,7 +599,7 @@ def _validate_rich_report_blocks(blocks: list[dict[str, Any]] | None) -> str | N
                 return f"blocks[{index}].columns must be a list"
             if not isinstance(rows, (list, tuple)):
                 return f"blocks[{index}].rows must be a list"
-        if block_type in {"cards", "badges", "legend"}:
+        if block_type in {"cards", "badges", "legend", "columns"}:
             items = block.get("items", [])
             if not isinstance(items, (list, tuple)):
                 return f"blocks[{index}].items must be a list"
@@ -626,6 +693,68 @@ def _render_rich_report_cards(block: dict[str, Any], tokens: dict[str, str]) -> 
     return (
         '<div style="display:grid; grid-template-columns:repeat(4,minmax(120px,1fr)); '
         f'gap:10px; margin:12px 0 18px 0;">{"".join(cards)}</div>'
+    )
+
+
+def _coerce_percentage(value: Any, maximum: Any) -> tuple[float, str]:
+    """Return a clamped percentage and display text for progress blocks."""
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        numeric_value = 0.0
+    try:
+        numeric_maximum = float(maximum)
+    except (TypeError, ValueError):
+        numeric_maximum = 100.0
+    if numeric_maximum <= 0:
+        numeric_maximum = 100.0
+
+    percentage = max(0.0, min(100.0, (numeric_value / numeric_maximum) * 100.0))
+    display = f"{int(percentage)}%" if percentage.is_integer() else f"{percentage:.1f}%"
+    return percentage, display
+
+
+def _render_rich_report_progress(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render a horizontal progress bar."""
+    percentage, display = _coerce_percentage(block.get("value", 0), block.get("max", 100))
+    label = _escape_html_value(block.get("label", "Progress"))
+    color = str(block.get("color") or tokens["accent"])
+    note = block.get("note")
+    note_html = ""
+    if note is not None:
+        note_html = (
+            f'<div style="color:{tokens["muted"]}; font-size:12px; margin-top:4px;">'
+            f"{_escape_html_value(note)}</div>"
+        )
+    return (
+        f'<div class="chimerax-mcp-rich-report-progress" style="margin:12px 0 16px 0;">'
+        '<div style="display:flex; justify-content:space-between; gap:12px; '
+        f'color:{tokens["text"]}; font-weight:800; margin-bottom:6px;">'
+        f"<span>{label}</span><span>{display}</span></div>"
+        f'<div style="height:14px; background:{tokens["panel"]}; border:1px solid '
+        f'{tokens["border"]}; border-radius:999px; overflow:hidden;">'
+        f'<div style="height:100%; width:{percentage:.1f}%; background:{color};"></div>'
+        "</div>"
+        f"{note_html}</div>"
+    )
+
+
+def _render_rich_report_columns(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render nested report blocks in flexible columns."""
+    items = block.get("items", [])
+    min_width = _escape_html_value(block.get("min_width", "240px"))
+    gap = _escape_html_value(block.get("gap", "12px"))
+    column_html = []
+    for item in items:
+        if not isinstance(item, dict):
+            item = {"type": "paragraph", "text": item}
+        column_html.append(
+            f'<div style="min-width:{min_width}; flex:1 1 {min_width};">'
+            f"{_render_rich_report_block(item, tokens)}</div>"
+        )
+    return (
+        f'<div class="chimerax-mcp-rich-report-columns" style="display:flex; '
+        f'flex-wrap:wrap; gap:{gap}; margin:12px 0 16px 0;">{"".join(column_html)}</div>'
     )
 
 
@@ -739,6 +868,10 @@ def _render_rich_report_block(block: dict[str, Any], tokens: dict[str, str]) -> 
         return _render_rich_report_paragraph(block, tokens)
     if block_type == "cards":
         return _render_rich_report_cards(block, tokens)
+    if block_type == "progress":
+        return _render_rich_report_progress(block, tokens)
+    if block_type == "columns":
+        return _render_rich_report_columns(block, tokens)
     if block_type == "table":
         return _render_rich_report_table(block, tokens)
     if block_type == "callout":
@@ -811,6 +944,8 @@ def chimerax_rich_log(
     html: str,
     level: str = "info",
     title: str | None = None,
+    save_html_path: str | None = None,
+    overwrite: bool = False,
 ) -> dict[str, Any]:
     """Write trusted HTML to the ChimeraX Log.
 
@@ -821,6 +956,8 @@ def chimerax_rich_log(
         html: HTML content to write to the ChimeraX Log.
         level: Log level - ``info``, ``warning``, or ``error`` (default: info).
         title: Optional escaped heading displayed above the HTML.
+        save_html_path: Optional local path where the generated HTML should be saved.
+        overwrite: If True, allow replacing an existing ``save_html_path``.
 
     Returns:
         Status of the rich log write operation.
@@ -836,7 +973,12 @@ def chimerax_rich_log(
         }
 
     rich_html = _build_rich_log_html(html=html, title=title)
-    return _write_rich_log(html=rich_html, level=normalized_level)
+    return _write_rich_log(
+        html=rich_html,
+        level=normalized_level,
+        save_html_path=save_html_path,
+        overwrite=overwrite,
+    )
 
 
 @mcp.tool()
@@ -847,6 +989,8 @@ def chimerax_rich_report(
     accent_color: str | None = None,
     blocks: list[dict[str, Any]] | None = None,
     level: str = "info",
+    save_html_path: str | None = None,
+    overwrite: bool = False,
 ) -> dict[str, Any]:
     """Compose a themed rich HTML report for the ChimeraX Log.
 
@@ -860,6 +1004,8 @@ def chimerax_rich_report(
         accent_color: Optional primary accent color.
         blocks: Ordered rich content blocks.
         level: Log level - ``info``, ``warning``, or ``error`` (default: info).
+        save_html_path: Optional local path where the generated HTML should be saved.
+        overwrite: If True, allow replacing an existing ``save_html_path``.
 
     Returns:
         Status of the rich report write operation.
@@ -892,7 +1038,12 @@ def chimerax_rich_report(
         accent_color=accent_color,
         blocks=blocks,
     )
-    return _write_rich_log(html=report_html, level=normalized_level)
+    return _write_rich_log(
+        html=report_html,
+        level=normalized_level,
+        save_html_path=save_html_path,
+        overwrite=overwrite,
+    )
 
 
 @mcp.tool()
