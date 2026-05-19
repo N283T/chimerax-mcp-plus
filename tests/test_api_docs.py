@@ -1,6 +1,7 @@
 """Tests for ChimeraX static API documentation helpers."""
 
 import json
+from pathlib import Path
 
 import chimerax_mcp.api_docs as api_docs
 from chimerax_mcp.api_docs import (
@@ -293,3 +294,12 @@ def test_read_api_target_truncates_content_to_max_chars():
     assert result["content"] == "atomic\natomi"
     assert len(result["content"]) == 12
     assert result["truncated"] is True
+
+
+def test_build_doc_index_script_exists():
+    script = Path("scripts/build_chimerax_doc_index.py")
+
+    assert script.exists()
+    text = script.read_text(encoding="utf-8")
+    assert "def build_index" in text
+    assert "def find_default_docs_path" in text
