@@ -88,7 +88,9 @@ try:
         'doc': doc[:max_doc_chars],
     }}
     if include_dir:
-        payload['attrs'] = [name for name in dir(target) if not name.startswith('__')][:100]
+        attributes = [name for name in dir(target) if not name.startswith('__')]
+        payload['attributes'] = attributes[:100]
+        payload['attributes_truncated'] = len(attributes) > 100
     emit(payload)
 except Exception as err:
     emit({{
@@ -143,7 +145,13 @@ try:
     if filter_text:
         lowered = filter_text.lower()
         attrs = [name for name in attrs if lowered in name.lower()]
-    emit({{'status': 'ok', 'symbol': symbol, 'attrs': attrs[:limit], 'count': len(attrs)}})
+    emit({{
+        'status': 'ok',
+        'symbol': symbol,
+        'attributes': attrs[:limit],
+        'truncated': len(attrs) > limit,
+        'count': len(attrs),
+    }})
 except Exception as err:
     emit({{
         'status': 'error',

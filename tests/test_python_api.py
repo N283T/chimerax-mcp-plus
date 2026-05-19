@@ -17,6 +17,28 @@ from chimerax_mcp.python_api import (
 )
 
 
+def _run_generated_script(script: str) -> dict[str, Any]:
+    class FakeLogger:
+        messages: list[str]
+
+        def __init__(self) -> None:
+            self.messages = []
+
+        def info(self, message: str) -> None:
+            self.messages.append(message)
+
+    class FakeSession:
+        logger: FakeLogger
+
+        def __init__(self) -> None:
+            self.logger = FakeLogger()
+
+    session = FakeSession()
+    exec(script, {"session": session})
+    assert session.logger.messages
+    return parse_introspection_result({"log_messages": {"info": session.logger.messages}})
+
+
 def test_validate_symbol_accepts_dotted_import_path() -> None:
     assert validate_symbol("chimerax.atomic.AtomicStructure") is None
 
@@ -55,6 +77,33 @@ def test_build_python_dir_script_contains_filter_limit_and_marker() -> None:
     assert "filter_text = 'res'" in script
     assert "limit = 25" in script
     assert MARKER in script
+
+
+def test_inspect_script_emits_attributes_when_include_dir_is_true() -> None:
+    script = build_python_inspect_script(
+        "json.decoder.JSONDecoder",
+        include_dir=True,
+        max_doc_chars=500,
+    )
+
+    payload = _run_generated_script(script)
+
+    assert payload["status"] == "ok"
+    assert payload["symbol"] == "json.decoder.JSONDecoder"
+    assert "decode" in payload["attributes"]
+    assert "attrs" not in payload
+
+
+def test_dir_script_emits_attributes_and_truncated() -> None:
+    script = build_python_dir_script("json.decoder.JSONDecoder", filter_text=None, limit=1)
+
+    payload = _run_generated_script(script)
+
+    assert payload["status"] == "ok"
+    assert payload["symbol"] == "json.decoder.JSONDecoder"
+    assert len(payload["attributes"]) == 1
+    assert payload["truncated"] is True
+    assert "attrs" not in payload
 
 
 def test_parse_introspection_result_reads_marker_payload_from_note_log() -> None:
