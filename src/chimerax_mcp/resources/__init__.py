@@ -1,0 +1,1 @@
+"""Bundled ChimeraX documentation indexes."""
