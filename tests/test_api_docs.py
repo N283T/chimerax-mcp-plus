@@ -2,6 +2,7 @@
 
 import json
 
+import chimerax_mcp.api_docs as api_docs
 from chimerax_mcp.api_docs import (
     DocIndexSource,
     find_doc_sources,
@@ -102,3 +103,168 @@ def test_read_api_target_extracts_local_html(tmp_path):
 
     assert result["status"] == "ok"
     assert result["content"] == "atomic\nAtomic API\nResidue and atom objects."
+
+
+def test_read_api_target_rejects_absolute_local_html_path(tmp_path):
+    docs_root = tmp_path.joinpath("docs")
+    docs_root.mkdir()
+    escaped_path = tmp_path.joinpath("escaped.html")
+    escaped_path.write_text(
+        "<html><body><h1>Escaped secret contents</h1></body></html>",
+        encoding="utf-8",
+    )
+    index_path = docs_root.joinpath("chimerax-test.index.json")
+    index_path.write_text(
+        json.dumps(
+            {
+                "version": "test",
+                "commands": {},
+                "tutorials": {},
+                "modules": {
+                    "atomic": {
+                        "path": str(escaped_path),
+                        "title": "atomic title",
+                        "description": "safe metadata fallback",
+                    },
+                },
+                "keywords": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    source = DocIndexSource(kind="local", index_path=index_path, docs_root=docs_root)
+
+    result = read_api_target("atomic", source=source)
+
+    assert result["status"] == "ok"
+    assert "safe metadata fallback" in result["content"]
+    assert "Escaped secret contents" not in result["content"]
+
+
+def test_read_api_target_rejects_parent_relative_local_html_path(tmp_path):
+    docs_root = tmp_path.joinpath("docs")
+    docs_root.mkdir()
+    escaped_path = tmp_path.joinpath("escaped.html")
+    escaped_path.write_text(
+        "<html><body><h1>Escaped parent contents</h1></body></html>",
+        encoding="utf-8",
+    )
+    index_path = docs_root.joinpath("chimerax-test.index.json")
+    index_path.write_text(
+        json.dumps(
+            {
+                "version": "test",
+                "commands": {},
+                "tutorials": {},
+                "modules": {
+                    "atomic": {
+                        "path": "../escaped.html",
+                        "title": "atomic title",
+                        "description": "safe parent metadata fallback",
+                    },
+                },
+                "keywords": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    source = DocIndexSource(kind="local", index_path=index_path, docs_root=docs_root)
+
+    result = read_api_target("atomic", source=source)
+
+    assert result["status"] == "ok"
+    assert "safe parent metadata fallback" in result["content"]
+    assert "Escaped parent contents" not in result["content"]
+
+
+def test_find_doc_sources_includes_env_docs_root_without_local_index(tmp_path, monkeypatch):
+    docs_root = tmp_path.joinpath("docs")
+    html_path = docs_root.joinpath("devel", "modules", "atomic", "atomic.html")
+    html_path.parent.mkdir(parents=True)
+    html_path.write_text(
+        "<html><body><h1>Local Atomic HTML</h1><p>Packaged metadata path.</p></body></html>",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("CHIMERAX_DOCS_PATH", str(docs_root))
+
+    source = find_doc_sources()[0]
+    result = read_api_target("atomic", source=source)
+
+    assert source.kind == "env"
+    assert source.index_path is None
+    assert source.docs_root == docs_root
+    assert result["status"] == "ok"
+    assert result["content"] == "Local Atomic HTML\nPackaged metadata path."
+
+
+def test_find_doc_sources_uses_repo_skill_docs_root_for_html(tmp_path, monkeypatch):
+    assets_root = tmp_path.joinpath("skills", "explore-chimerax", "assets")
+    docs_root = assets_root.joinpath("docs")
+    html_path = docs_root.joinpath("devel", "modules", "atomic", "atomic.html")
+    html_path.parent.mkdir(parents=True)
+    html_path.write_text(
+        "<html><body><h1>Repo Skill Atomic HTML</h1></body></html>",
+        encoding="utf-8",
+    )
+    index_path = assets_root.joinpath("chimerax-test.index.json")
+    index_path.write_text(
+        json.dumps(
+            {
+                "version": "test",
+                "commands": {},
+                "tutorials": {},
+                "modules": {
+                    "atomic": {
+                        "path": "devel/modules/atomic/atomic.html",
+                        "title": "atomic",
+                        "description": "fallback",
+                    },
+                },
+                "keywords": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("CHIMERAX_DOCS_PATH", raising=False)
+    monkeypatch.setattr(api_docs, "_candidate_chimerax_docs_roots", lambda: [])
+    monkeypatch.setattr(api_docs, "_repo_root", lambda: tmp_path)
+
+    source = find_doc_sources()[0]
+    result = read_api_target("atomic", source=source)
+
+    assert source.kind == "repo-skill"
+    assert source.index_path == index_path
+    assert source.docs_root == docs_root
+    assert result["status"] == "ok"
+    assert result["content"] == "Repo Skill Atomic HTML"
+
+
+def test_read_api_target_returns_color_command_metadata_summary():
+    result = read_api_target("color", source=DocIndexSource.packaged(), max_chars=500)
+
+    assert result["status"] == "ok"
+    assert result["target"] == "color"
+    assert result["kind"] == "commands"
+    assert "Command: color, rainbow" in result["content"]
+
+
+def test_read_api_target_resolves_packaged_target_by_path():
+    result = read_api_target(
+        "devel/modules/atomic/atomic.html",
+        source=DocIndexSource.packaged(),
+        max_chars=500,
+    )
+
+    assert result["status"] == "ok"
+    assert result["target"] == "atomic"
+    assert result["kind"] == "modules"
+    assert "Atomic structures" in result["content"]
+
+
+def test_read_api_target_truncates_content_to_max_chars():
+    result = read_api_target("atomic", source=DocIndexSource.packaged(), max_chars=12)
+
+    assert result["status"] == "ok"
+    assert result["content"] == "atomic\natomi"
+    assert len(result["content"]) == 12
+    assert result["truncated"] is True

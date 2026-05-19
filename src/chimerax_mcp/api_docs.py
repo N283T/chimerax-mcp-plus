@@ -61,7 +61,15 @@ def find_doc_sources() -> list[DocIndexSource]:
     repo_root = _repo_root()
     if repo_root is not None:
         skill_assets = repo_root.joinpath("skills", "explore-chimerax", "assets")
-        sources.extend(_sources_from_docs_root(skill_assets, kind="repo-skill", seen=seen))
+        skill_docs_root = skill_assets.joinpath("docs")
+        sources.extend(
+            _sources_from_docs_root(
+                skill_docs_root if skill_docs_root.exists() else skill_assets,
+                kind="repo-skill",
+                seen=seen,
+                index_root=skill_assets,
+            )
+        )
 
     sources.append(DocIndexSource.packaged())
     return sources
@@ -134,16 +142,27 @@ def read_api_target(
     }
 
 
-def _sources_from_docs_root(docs_root: Path, kind: str, seen: set[str]) -> list[DocIndexSource]:
+def _sources_from_docs_root(
+    docs_root: Path,
+    kind: str,
+    seen: set[str],
+    index_root: Path | None = None,
+) -> list[DocIndexSource]:
     if not docs_root.exists():
         return []
+    index_root = index_root or docs_root
     found: list[DocIndexSource] = []
-    for index_path in sorted(docs_root.glob("chimerax-*.index.json")):
+    for index_path in sorted(index_root.glob("chimerax-*.index.json")):
         key = str(index_path.resolve())
         if key in seen:
             continue
         seen.add(key)
         found.append(DocIndexSource(kind=kind, index_path=index_path, docs_root=docs_root))
+    if not found:
+        key = f"{kind}:{docs_root.resolve()}"
+        if key not in seen:
+            seen.add(key)
+            found.append(DocIndexSource(kind=kind, index_path=None, docs_root=docs_root))
     return found
 
 
@@ -263,7 +282,16 @@ def _local_html_path(source: DocIndexSource, record: dict[str, Any]) -> Path | N
     path = record.get("path")
     if docs_root is None or not path:
         return None
-    return docs_root.joinpath(*Path(str(path)).parts)
+    relative_path = Path(str(path))
+    if relative_path.is_absolute() or ".." in relative_path.parts:
+        return None
+    docs_root_resolved = docs_root.resolve()
+    candidate = docs_root_resolved.joinpath(*relative_path.parts).resolve()
+    try:
+        candidate.relative_to(docs_root_resolved)
+    except ValueError:
+        return None
+    return candidate
 
 
 class _PlainTextHTMLParser(HTMLParser):
