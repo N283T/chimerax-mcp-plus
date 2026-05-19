@@ -12,6 +12,8 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
+from chimerax_mcp.chimerax import detect_chimerax
+
 PACKAGED_INDEX_NAME = "chimerax-1.9.index.json"
 VALID_KINDS = ("all", "commands", "keywords", "modules", "tutorials")
 SEARCH_KINDS = ("commands", "tutorials", "modules")
@@ -54,6 +56,12 @@ def find_doc_sources() -> list[DocIndexSource]:
     env_docs = os.environ.get("CHIMERAX_DOCS_PATH")
     if env_docs:
         sources.extend(_sources_from_docs_root(Path(env_docs), kind="env", seen=seen))
+
+    chimerax = detect_chimerax()
+    if chimerax is not None:
+        docs_root = _docs_from_chimerax_executable(chimerax.path)
+        if docs_root is not None:
+            sources.extend(_sources_from_docs_root(docs_root, kind="chimerax", seen=seen))
 
     for docs_root in _candidate_chimerax_docs_roots():
         sources.extend(_sources_from_docs_root(docs_root, kind="chimerax", seen=seen))
@@ -150,6 +158,10 @@ def _sources_from_docs_root(
 ) -> list[DocIndexSource]:
     if not docs_root.exists():
         return []
+    root_key = f"docs-root:{docs_root.resolve()}"
+    if root_key in seen:
+        return []
+    seen.add(root_key)
     index_root = index_root or docs_root
     found: list[DocIndexSource] = []
     for index_path in sorted(index_root.glob("chimerax-*.index.json")):
@@ -164,6 +176,30 @@ def _sources_from_docs_root(
             seen.add(key)
             found.append(DocIndexSource(kind=kind, index_path=None, docs_root=docs_root))
     return found
+
+
+def _docs_from_chimerax_executable(executable: Path) -> Path | None:
+    """Return an installed docs root derived from a ChimeraX executable path."""
+    executable = executable.resolve()
+
+    if (
+        executable.parent.name == "MacOS"
+        and executable.parent.parent.name == "Contents"
+        and executable.parent.parent.parent.suffix == ".app"
+    ):
+        docs_root = executable.parent.parent.joinpath("share", "docs")
+        if docs_root.exists():
+            return docs_root
+
+    if executable.parent.name in {"bin", "MacOS"}:
+        docs_root = executable.parent.parent.joinpath("share", "docs")
+        if docs_root.exists():
+            return docs_root
+
+    docs_root = executable.parent.joinpath("share", "docs")
+    if docs_root.exists():
+        return docs_root
+    return None
 
 
 def _candidate_chimerax_docs_roots() -> list[Path]:

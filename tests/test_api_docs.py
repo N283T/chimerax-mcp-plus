@@ -35,6 +35,30 @@ def test_find_doc_sources_prefers_env_docs_with_test_index(tmp_path, monkeypatch
     assert sources[0].docs_root == docs_root
 
 
+def test_find_doc_sources_detects_docs_from_chimerax_path_before_packaged(
+    tmp_path, monkeypatch
+):
+    app_root = tmp_path.joinpath("ChimeraX.app")
+    executable = app_root.joinpath("Contents", "MacOS", "ChimeraX")
+    docs_root = app_root.joinpath("Contents", "share", "docs")
+    executable.parent.mkdir(parents=True)
+    docs_root.mkdir(parents=True)
+    executable.write_text("#!/bin/sh\n", encoding="utf-8")
+    index_path = docs_root.joinpath("chimerax-test.index.json")
+    index_path.write_text(json.dumps({"version": "test"}), encoding="utf-8")
+    monkeypatch.delenv("CHIMERAX_DOCS_PATH", raising=False)
+    monkeypatch.setenv("CHIMERAX_PATH", str(executable))
+    monkeypatch.setattr(api_docs, "_candidate_chimerax_docs_roots", lambda: [])
+    monkeypatch.setattr(api_docs, "_repo_root", lambda: None)
+
+    sources = find_doc_sources()
+
+    assert sources[0].kind == "chimerax"
+    assert sources[0].index_path == index_path
+    assert sources[0].docs_root == docs_root
+    assert sources[1].kind == "packaged"
+
+
 def test_search_api_index_finds_atomic_modules_from_packaged_source():
     result = search_api_index(
         "AtomicStructure residues",
@@ -226,6 +250,7 @@ def test_find_doc_sources_uses_repo_skill_docs_root_for_html(tmp_path, monkeypat
         encoding="utf-8",
     )
     monkeypatch.delenv("CHIMERAX_DOCS_PATH", raising=False)
+    monkeypatch.setattr(api_docs, "detect_chimerax", lambda: None)
     monkeypatch.setattr(api_docs, "_candidate_chimerax_docs_roots", lambda: [])
     monkeypatch.setattr(api_docs, "_repo_root", lambda: tmp_path)
 
