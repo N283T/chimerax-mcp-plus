@@ -7,6 +7,7 @@ MCP server for controlling UCSF ChimeraX molecular visualization.
 - **ChimeraX Control**: Start, detect, and control ChimeraX via REST API
 - **Command Execution**: Run any ChimeraX command
 - **Screenshot Capture**: Take screenshots of the 3D view and tool windows
+- **Rich Log Output**: Write trusted HTML and generated analysis reports to the ChimeraX Log
 - **View Management**: Fit, rotate, and reset the view
 - **Session Management**: Save and load ChimeraX sessions
 
@@ -74,6 +75,15 @@ By default, the server auto-detects the latest installed ChimeraX. To use a spec
 | `chimerax_list_screenshots` | List all saved screenshots |
 | `chimerax_cleanup_screenshots` | Delete old screenshots (e.g., `older_than_days=7`) |
 
+### Rich Log Output
+
+| Tool | Description |
+|------|-------------|
+| `chimerax_rich_log` | Write trusted caller-provided HTML to the ChimeraX Log |
+| `chimerax_rich_report` | Render a generic escaped HTML report from title, summary, sections, tables, key-values, and warnings |
+
+`chimerax_rich_log` passes HTML through to ChimeraX with `is_html=True`; only use it with trusted input. Use `chimerax_rich_report` for structured analysis data that should be escaped before display.
+
 ### View Management
 
 | Tool | Description |
@@ -129,6 +139,35 @@ This MCP server communicates with ChimeraX via its REST API:
 1. ChimeraX is started with `remotecontrol rest start port 63269 json true log true`
 2. Commands are sent via HTTP GET to `http://127.0.0.1:63269/run?command=...`
 3. Results are parsed and returned to the AI client
+
+## Rich Log Examples
+
+Low-level trusted HTML:
+
+```json
+{
+  "html": "<p><b>RMSD:</b> 1.42 Å</p>",
+  "title": "Alignment summary"
+}
+```
+
+Generic report:
+
+```json
+{
+  "title": "Structure analysis",
+  "summary": "Two chains were analyzed.",
+  "key_values": {"Models": 1, "Chains": 2},
+  "warnings": ["One ligand is missing density."],
+  "tables": [
+    {
+      "title": "Contacts",
+      "columns": ["Atom A", "Atom B", "Distance Å"],
+      "rows": [["A:LYS 12 NZ", "B:ASP 45 OD1", 2.9]]
+    }
+  ]
+}
+```
 
 ## Requirements
 

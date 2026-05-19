@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `chimerax_rich_log()` to write trusted HTML directly to the ChimeraX Log.
+- `chimerax_rich_report()` to render escaped generic analysis reports in the ChimeraX Log.
 - Claude Code agents for specialized ChimeraX workflows:
   - `chimerax-operator`: MCP operator for visualization and manipulation
   - `structural-biologist`: Structural biology analysis expert
