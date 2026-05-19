@@ -1024,6 +1024,33 @@ class TestRichLog:
 
         assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
 
+    def test_rich_log_finds_matching_nonce_marker_inside_combined_log_message(self):
+        mock_client = ChimeraXClient(port=59998)
+
+        def fake_run_command(cmd: str):
+            script_path = Path(cmd.removeprefix("runscript ").strip('"'))
+            script = script_path.read_text()
+            marker = _extract_rich_log_ok_marker_from_script(script)
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {
+                    "info": [
+                        "<p>Rendered HTML and command echo</p>\n"
+                        f"{marker}\n"
+                    ]
+                },
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(html="<p>combined log output</p>")
+
+        assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
+
     def test_rich_log_ignores_static_sentinel_text_without_matching_nonce(self):
         mock_client = ChimeraXClient(port=59998)
 

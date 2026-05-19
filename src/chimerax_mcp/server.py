@@ -401,14 +401,15 @@ def _write_rich_log(html: str, level: str) -> dict[str, Any]:
             return {"status": "error", "error_type": "Unknown", "message": str(err)}
 
         for message in _iter_structured_log_messages(result):
-            if message.startswith(error_marker_prefix):
-                return {
-                    "status": "error",
-                    "message": message.removeprefix(error_marker_prefix).strip(),
-                }
-
-        if ok_marker in _iter_structured_log_messages(result):
-            return {"status": "ok", "level": level, "message": "Rich log written"}
+            for line in message.splitlines():
+                stripped = line.strip()
+                if stripped.startswith(error_marker_prefix):
+                    return {
+                        "status": "error",
+                        "message": stripped.removeprefix(error_marker_prefix).strip(),
+                    }
+                if stripped == ok_marker:
+                    return {"status": "ok", "level": level, "message": "Rich log written"}
 
         output = client._extract_output(result)
         return {"status": "error", "message": f"Unexpected output: {output}"}
