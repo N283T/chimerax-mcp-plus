@@ -8,6 +8,7 @@ MCP server for controlling UCSF ChimeraX molecular visualization.
 - **Command Execution**: Run any ChimeraX command
 - **Screenshot Capture**: Take screenshots of the 3D view and tool windows
 - **Rich Log Output**: Write trusted HTML and generated analysis reports to the ChimeraX Log
+- **API Reference**: Search packaged/local ChimeraX docs and inspect live Python API symbols via safe `runscript` helpers
 - **View Management**: Fit, rotate, and reset the view
 - **Session Management**: Save and load ChimeraX sessions
 
@@ -83,6 +84,17 @@ By default, the server auto-detects the latest installed ChimeraX. To use a spec
 | `chimerax_rich_report` | Compose a themed rich HTML report from flexible blocks such as cards, tables, progress bars, columns, badges, callouts, legends, and raw HTML |
 
 `chimerax_rich_log` passes HTML through to ChimeraX with `is_html=True`; only use it with trusted input. `chimerax_rich_report` escapes plain text fields but allows raw HTML blocks for trusted local reports. Use `theme="auto"` to let generated reports follow the ChimeraX/system light or dark appearance where Qt WebEngine supports `prefers-color-scheme`; explicit `theme="light"` and `theme="dark"` remain available. Pass `save_html_path` to either rich-log tool to save the exact generated HTML locally; existing files require `overwrite=true`.
+
+### API Reference and Python Introspection
+
+| Tool | Description |
+|------|-------------|
+| `chimerax_api_search` | Search static ChimeraX command, tutorial, and Python API module metadata; works without optional skills by using a packaged lightweight index |
+| `chimerax_api_read` | Read a static documentation entry from local docs when available, or return the packaged metadata summary |
+| `chimerax_python_inspect` | Inspect a live ChimeraX Python API symbol via `runscript` using bounded `inspect` output |
+| `chimerax_python_dir` | List attributes of a live ChimeraX Python API symbol with optional substring filtering |
+
+Static lookup uses `CHIMERAX_DOCS_PATH` first, then detected local ChimeraX docs, then repository-local skill docs when running from a checkout, and finally the packaged fallback index. Live introspection requires ChimeraX to be running and accepts only dotted symbols such as `chimerax.atomic.AtomicStructure`; it does not expose arbitrary Python evaluation.
 
 ### View Management
 
@@ -208,6 +220,37 @@ Themed block-composer report:
       "text": "Raw HTML blocks are allowed for trusted local reports."
     }
   ]
+}
+```
+
+## API Reference Examples
+
+Search packaged or local ChimeraX API metadata:
+
+```json
+{
+  "query": "AtomicStructure residues",
+  "kind": "modules",
+  "limit": 5
+}
+```
+
+Read a static documentation entry:
+
+```json
+{
+  "target": "atomic",
+  "max_chars": 4000
+}
+```
+
+Inspect a live ChimeraX Python API symbol:
+
+```json
+{
+  "symbol": "chimerax.atomic.AtomicStructure",
+  "include_dir": true,
+  "max_doc_chars": 4000
 }
 ```
 
