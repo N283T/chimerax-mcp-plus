@@ -1133,56 +1133,105 @@ class TestRichLog:
 
 
 class TestRichReport:
-    """Tests for generic rich report generation and logging."""
+    """Tests for rich report block composer generation and logging."""
 
-    def test_build_rich_report_html_escapes_data_values(self):
+    def test_build_rich_report_html_renders_dark_block_composer(self):
         html = _build_rich_report_html(
-            title="Model <One>",
-            summary="Contains <script>alert(1)</script>",
-            sections=[{"heading": "Section <A>", "body": "Body <unsafe>"}],
-            key_values={"Ligand <id>": "ATP <5>"},
-            warnings=["Check <distance>"],
-            tables=[
+            title="Carbonic Anhydrase II",
+            subtitle="PDB 1CA2 · active-site snapshot",
+            theme="dark",
+            accent_color="#58a6ff",
+            blocks=[
                 {
-                    "title": "Contacts <table>",
-                    "columns": ["Atom <1>", "Distance"],
-                    "rows": [["CA <A>", 3.2], ["CB", None]],
-                }
+                    "type": "cards",
+                    "items": [
+                        {"label": "Model", "value": "#1 · 1CA2"},
+                        {"label": "Cofactor", "value": "Zn²⁺", "color": "#ffd33d"},
+                    ],
+                },
+                {"type": "heading", "text": "Functional feature map"},
+                {
+                    "type": "table",
+                    "columns": ["Feature", "Residues", "View"],
+                    "rows": [
+                        [
+                            "Active site",
+                            "His64",
+                            {
+                                "text": "red",
+                                "style": "background:#da3633;color:white;font-weight:800;",
+                            },
+                        ],
+                    ],
+                    "header_color": "#1f6feb",
+                },
+                {"type": "callout", "tone": "warning", "title": "Note", "text": "Draft report"},
             ],
         )
 
-        assert "Model &lt;One&gt;" in html
-        assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
-        assert "Section &lt;A&gt;" in html
-        assert "Body &lt;unsafe&gt;" in html
-        assert "Ligand &lt;id&gt;" in html
-        assert "ATP &lt;5&gt;" in html
-        assert "Check &lt;distance&gt;" in html
-        assert "Contacts &lt;table&gt;" in html
-        assert "Atom &lt;1&gt;" in html
-        assert "CA &lt;A&gt;" in html
-        assert "<script>" not in html
+        assert "chimerax-mcp-rich-report" in html
+        assert "background:#0d1117" in html
+        assert "Carbonic Anhydrase II" in html
+        assert "PDB 1CA2 · active-site snapshot" in html
+        assert "#1 · 1CA2" in html
+        assert "Zn²⁺" in html
+        assert "Functional feature map" in html
+        assert "background:#da3633;color:white;font-weight:800;" in html
+        assert "Draft report" in html
 
-    def test_build_rich_report_html_renders_report_structure(self):
+    def test_build_rich_report_html_renders_light_theme(self):
         html = _build_rich_report_html(
-            title="Analysis Summary",
-            summary="Two models compared.",
-            sections=[{"heading": "Alignment", "body": "RMSD is 1.4 Å."}],
-            key_values={"Models": 2, "Method": "matchmaker"},
-            warnings=["One chain was missing."],
-            tables=[{"title": "Distances", "columns": ["Pair", "Å"], "rows": [["A-B", 2.8]]}],
+            title="Light report",
+            theme="light",
+            blocks=[{"type": "paragraph", "text": "Readable on white backgrounds"}],
         )
 
-        assert "chimerax-mcp-rich-report" in html
-        assert "Analysis Summary" in html
-        assert "Two models compared." in html
-        assert "Alignment" in html
-        assert "RMSD is 1.4 Å." in html
-        assert "Models" in html
-        assert "matchmaker" in html
-        assert "One chain was missing." in html
-        assert "Distances" in html
-        assert "A-B" in html
+        assert "background:#ffffff" in html
+        assert "color:#111827" in html
+        assert "Readable on white backgrounds" in html
+
+    def test_build_rich_report_html_escapes_text_but_preserves_raw_html(self):
+        html = _build_rich_report_html(
+            title="Unsafe <title>",
+            theme="dark",
+            blocks=[
+                {"type": "paragraph", "text": "Text <script>alert(1)</script>"},
+                {"type": "html", "html": "<p><b>Trusted raw HTML</b></p>"},
+            ],
+        )
+
+        assert "Unsafe &lt;title&gt;" in html
+        assert "Text &lt;script&gt;alert(1)&lt;/script&gt;" in html
+        assert "<p><b>Trusted raw HTML</b></p>" in html
+        assert "Text <script>" not in html
+
+    def test_build_rich_report_html_renders_badges_and_legend(self):
+        html = _build_rich_report_html(
+            title="Legend report",
+            blocks=[
+                {
+                    "type": "badges",
+                    "items": ["interactive", {"label": "view colored", "tone": "success"}],
+                },
+                {
+                    "type": "legend",
+                    "items": [
+                        {"label": "Active site", "color": "#da3633", "description": "His64"},
+                        {
+                            "label": "Zn²⁺ ligands",
+                            "color": "#fb8500",
+                            "description": "His94/96/119",
+                        },
+                    ],
+                },
+            ],
+        )
+
+        assert "interactive" in html
+        assert "view colored" in html
+        assert "Active site" in html
+        assert "#da3633" in html
+        assert "His94/96/119" in html
 
     def test_rich_report_rejects_empty_title(self):
         result = chimerax_rich_report.fn(title="  ")
@@ -1195,15 +1244,24 @@ class TestRichReport:
         assert result["status"] == "error"
         assert "level" in result["message"].lower()
 
-    def test_rich_report_rejects_invalid_table_rows(self):
-        result = chimerax_rich_report.fn(title="Report", tables=[{"rows": 3}])
+    def test_rich_report_rejects_invalid_theme(self):
+        result = chimerax_rich_report.fn(title="Report", theme="sepia")
         assert result["status"] == "error"
-        assert "tables[0].rows" in result["message"]
+        assert "theme" in result["message"].lower()
 
-    def test_rich_report_rejects_invalid_table_columns(self):
-        result = chimerax_rich_report.fn(title="Report", tables=[{"columns": 3}])
+    def test_rich_report_rejects_unknown_block_type(self):
+        result = chimerax_rich_report.fn(title="Report", blocks=[{"type": "timeline"}])
         assert result["status"] == "error"
-        assert "tables[0].columns" in result["message"]
+        assert "blocks[0].type" in result["message"]
+
+    def test_rich_report_rejects_malformed_table_columns_and_rows(self):
+        result = chimerax_rich_report.fn(title="Report", blocks=[{"type": "table", "columns": 3}])
+        assert result["status"] == "error"
+        assert "blocks[0].columns" in result["message"]
+
+        result = chimerax_rich_report.fn(title="Report", blocks=[{"type": "table", "rows": 3}])
+        assert result["status"] == "error"
+        assert "blocks[0].rows" in result["message"]
 
     def test_rich_report_builds_html_and_writes_it(self):
         captured: dict[str, str] = {}
@@ -1216,13 +1274,18 @@ class TestRichReport:
         with patch("chimerax_mcp.server._write_rich_log", side_effect=fake_write_rich_log):
             result = chimerax_rich_report.fn(
                 title="Analysis Summary",
-                summary="Complete",
-                key_values={"Models": 1},
+                subtitle="Composer output",
+                theme="dark",
+                blocks=[
+                    {"type": "cards", "items": [{"label": "Models", "value": 1}]},
+                    {"type": "paragraph", "text": "Complete"},
+                ],
             )
 
         assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
         assert captured["level"] == "info"
         assert "Analysis Summary" in captured["html"]
-        assert "Complete" in captured["html"]
+        assert "Composer output" in captured["html"]
         assert "Models" in captured["html"]
-        assert "1" in captured["html"]
+        assert "Complete" in captured["html"]
+
