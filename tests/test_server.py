@@ -15,11 +15,11 @@ from chimerax_mcp.server import (
     VALID_LOG_LEVELS,
     _build_rich_log_html,
     _build_rich_log_script,
-    _build_rich_report_html,
+    _build_rich_report_html,  # noqa: F401
     _build_tool_screenshot_script,
     chimerax_reset,
     chimerax_rich_log,
-    chimerax_rich_report,
+    chimerax_rich_report,  # noqa: F401
     chimerax_screenshot,
     chimerax_status,
     chimerax_tool_screenshot,
@@ -884,7 +884,7 @@ class TestRichLog:
     """Tests for chimerax_rich_log and helper script generation."""
 
     def test_valid_log_levels(self):
-        assert VALID_LOG_LEVELS == {"error", "info", "warning"}
+        assert {"error", "info", "warning"} == VALID_LOG_LEVELS
 
     def test_rich_log_rejects_empty_html(self):
         result = chimerax_rich_log.fn(html="   ")
