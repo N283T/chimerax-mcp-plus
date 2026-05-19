@@ -80,9 +80,9 @@ By default, the server auto-detects the latest installed ChimeraX. To use a spec
 | Tool | Description |
 |------|-------------|
 | `chimerax_rich_log` | Write trusted caller-provided HTML to the ChimeraX Log |
-| `chimerax_rich_report` | Render a generic escaped HTML report from title, summary, sections, tables, key-values, and warnings |
+| `chimerax_rich_report` | Compose a themed rich HTML report from flexible blocks such as cards, tables, badges, callouts, legends, and raw HTML |
 
-`chimerax_rich_log` passes HTML through to ChimeraX with `is_html=True`; only use it with trusted input. Use `chimerax_rich_report` for structured analysis data that should be escaped before display.
+`chimerax_rich_log` passes HTML through to ChimeraX with `is_html=True`; only use it with trusted input. `chimerax_rich_report` escapes plain text fields but allows raw HTML blocks for trusted local reports.
 
 ### View Management
 
@@ -151,19 +151,45 @@ Low-level trusted HTML:
 }
 ```
 
-Generic report:
+Themed block-composer report:
 
 ```json
 {
-  "title": "Structure analysis",
-  "summary": "Two chains were analyzed.",
-  "key_values": {"Models": 1, "Chains": 2},
-  "warnings": ["One ligand is missing density."],
-  "tables": [
+  "title": "Carbonic Anhydrase II active-site snapshot",
+  "subtitle": "PDB 1CA2 · Zn²⁺ metalloenzyme",
+  "theme": "dark",
+  "accent_color": "#58a6ff",
+  "blocks": [
     {
-      "title": "Contacts",
-      "columns": ["Atom A", "Atom B", "Distance Å"],
-      "rows": [["A:LYS 12 NZ", "B:ASP 45 OD1", 2.9]]
+      "type": "cards",
+      "items": [
+        {"label": "Model", "value": "#1 · 1CA2"},
+        {"label": "Resolution", "value": "2.0 Å"},
+        {"label": "Cofactor", "value": "Zn²⁺", "color": "#ffd33d"}
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Functional feature map",
+      "columns": ["Feature", "Residues", "View"],
+      "rows": [
+        [
+          "Active-site shuttle",
+          "His64",
+          {"text": "red", "style": "background:#da3633;color:white;font-weight:800;"}
+        ],
+        [
+          "Zn²⁺ ligands",
+          "His94, His96, His119",
+          {"text": "orange", "style": "background:#fb8500;color:white;font-weight:800;"}
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "tone": "warning",
+      "title": "Note",
+      "text": "Raw HTML blocks are allowed for trusted local reports."
     }
   ]
 }

@@ -8,13 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 - `chimerax_rich_log()` to write trusted HTML directly to the ChimeraX Log.
-- `chimerax_rich_report()` to render escaped generic analysis reports in the ChimeraX Log.
+- `chimerax_rich_report()` as a themed block composer for dashboard-like ChimeraX Log output.
 - Claude Code agents for specialized ChimeraX workflows:
   - `chimerax-operator`: MCP operator for visualization and manipulation
   - `structural-biologist`: Structural biology analysis expert
   - `chimerax-developer`: Bundle/extension development with echidna
 
 ### Changed
+- Reworked `chimerax_rich_report()` into a themed block composer for dashboard-like ChimeraX Log output.
 - Increased default `wait_seconds` from 10 to 15 for ChimeraX startup
 - Added 3-second initial sleep before polling REST API (ChimeraX needs time to launch)
 - Improved timeout message to indicate process may still be starting
