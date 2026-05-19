@@ -5,6 +5,7 @@ from __future__ import annotations
 import atexit
 import contextlib
 import datetime
+import html as html_lib
 import os
 import subprocess
 import tempfile
@@ -29,6 +30,7 @@ MIN_IMAGE_DIMENSION = 1
 
 # View management constants
 VALID_AXES = {"x", "y", "z"}
+VALID_LOG_LEVELS = {"error", "info", "warning"}
 _RESET_COMMANDS = [
     "hide pseudobonds",
     "hide atoms",
@@ -106,7 +108,9 @@ def chimerax_start(
         if background:
             return {
                 "status": "starting",
-                "message": "ChimeraX is starting in background. Use chimerax_status to check readiness.",
+                "message": (
+                    "ChimeraX is starting in background. Use chimerax_status to check readiness."
+                ),
             }
         # Process exists and is still running - wait for it
         # Initial sleep to allow process to initialize
@@ -127,7 +131,10 @@ def chimerax_start(
                 }
         return {
             "status": "timeout",
-            "message": f"Process exists but REST API not ready in {wait_seconds}s. ChimeraX may still be starting - try chimerax_status later.",
+            "message": (
+                f"Process exists but REST API not ready in {wait_seconds}s. "
+                "ChimeraX may still be starting - try chimerax_status later."
+            ),
         }
 
     try:
@@ -138,7 +145,9 @@ def chimerax_start(
     if background:
         return {
             "status": "starting",
-            "message": "ChimeraX is starting in background. Use chimerax_status to check readiness.",
+            "message": (
+                "ChimeraX is starting in background. Use chimerax_status to check readiness."
+            ),
         }
 
     # Initial sleep to allow ChimeraX to launch (especially important on macOS)
@@ -160,7 +169,10 @@ def chimerax_start(
 
     return {
         "status": "timeout",
-        "message": f"ChimeraX did not respond within {wait_seconds}s. The process is still running - try chimerax_status in a few seconds.",
+        "message": (
+            f"ChimeraX did not respond within {wait_seconds}s. "
+            "The process is still running - try chimerax_status in a few seconds."
+        ),
     }
 
 
@@ -257,6 +269,95 @@ def _run_command(command: str) -> dict[str, Any]:
     return _format_response(result)
 
 
+def _validate_log_level(level: str) -> str | None:
+    """Normalize and validate a ChimeraX logger level."""
+    normalized = level.strip().lower()
+    if normalized not in VALID_LOG_LEVELS:
+        return None
+    return normalized
+
+
+def _build_rich_log_html(html: str, title: str | None = None) -> str:
+    """Wrap trusted caller-provided HTML with an optional escaped title."""
+    if title is None or not title.strip():
+        return html
+    escaped_title = html_lib.escape(title.strip())
+    return "\n".join(
+        [
+            '<div class="chimerax-mcp-rich-log" '
+            'style="font-family: -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif; '
+            'line-height: 1.35; margin: 0.4em 0;">',
+            f'<h2 style="margin: 0 0 0.35em 0; font-size: 1.25em;">{escaped_title}</h2>',
+            html,
+            "</div>",
+        ]
+    )
+
+
+def _build_rich_log_script(html: str, level: str) -> str:
+    """Build a ChimeraX Python script that writes HTML to the Log."""
+    direct_logger_hint = (
+        f"    # logger_method = session.logger.{level}"
+        if level in VALID_LOG_LEVELS
+        else "    # logger_method selected by validated level"
+    )
+    lines = [
+        f"html_content = {html!r}",
+        f"level = {level!r}",
+        "",
+        "def write_log():",
+        direct_logger_hint,
+        "    logger_method = getattr(session.logger, level)",
+        "    logger_method(html_content, is_html=True)",
+        "",
+        "try:",
+        "    ui = getattr(session, 'ui', None)",
+        "    if ui is not None and getattr(ui, 'is_gui', False) and hasattr(ui, 'thread_safe'):",
+        "        session.ui.thread_safe(write_log)",
+        "    else:",
+        "        write_log()",
+        "    session.logger.info('OK: rich log written')",
+        "except Exception as exc:",
+        "    session.logger.info('ERROR: ' + str(exc))",
+    ]
+    return "\n".join(lines)
+
+
+def _write_rich_log(html: str, level: str) -> dict[str, Any]:
+    """Execute rich HTML logging inside ChimeraX."""
+    client = get_client()
+    if not client.is_running():
+        return {"status": "error", "message": "ChimeraX is not running"}
+
+    script = _build_rich_log_script(html=html, level=level)
+    fd, script_path_str = tempfile.mkstemp(suffix=".py", prefix="chimerax_rich_log_")
+    os.close(fd)
+    script_path = Path(script_path_str)
+    try:
+        script_path.write_text(script)
+        result = client.run_command(f"runscript {script_path}")
+        output = client._extract_output(result)
+
+        if "ERROR:" in output:
+            msg = output.split("ERROR:", 1)[1].strip()
+            return {"status": "error", "message": msg}
+
+        if "OK: rich log written" in output:
+            return {"status": "ok", "level": level, "message": "Rich log written"}
+
+        return {"status": "error", "message": f"Unexpected output: {output}"}
+    except httpx.HTTPError as e:
+        return {"status": "error", "message": f"HTTP error: {e}"}
+    finally:
+        with contextlib.suppress(OSError):
+            script_path.unlink()
+
+
+def _build_rich_report_html(*args: Any, **kwargs: Any) -> str:
+    """Placeholder for the later rich report implementation."""
+    raise NotImplementedError("chimerax_rich_report is implemented in a later task")
+
+
 @mcp.tool()
 def chimerax_run(command: str) -> dict[str, Any]:
     """Execute a ChimeraX command.
@@ -272,6 +373,53 @@ def chimerax_run(command: str) -> dict[str, Any]:
         Command output or error message.
     """
     return _run_command(command)
+
+
+@mcp.tool()
+def chimerax_rich_log(
+    html: str,
+    level: str = "info",
+    title: str | None = None,
+) -> dict[str, Any]:
+    """Write trusted HTML to the ChimeraX Log.
+
+    SECURITY NOTE: This tool passes caller-provided HTML through to ChimeraX
+    with ``is_html=True``. Only use with trusted input.
+
+    Args:
+        html: HTML content to write to the ChimeraX Log.
+        level: Log level - ``info``, ``warning``, or ``error`` (default: info).
+        title: Optional escaped heading displayed above the HTML.
+
+    Returns:
+        Status of the rich log write operation.
+    """
+    if not html or not html.strip():
+        return {"status": "error", "message": "html must not be empty"}
+
+    normalized_level = _validate_log_level(level)
+    if normalized_level is None:
+        return {
+            "status": "error",
+            "message": f"level must be one of: {', '.join(sorted(VALID_LOG_LEVELS))}",
+        }
+
+    rich_html = _build_rich_log_html(html=html, title=title)
+    return _write_rich_log(html=rich_html, level=normalized_level)
+
+
+@mcp.tool()
+def chimerax_rich_report(
+    title: str,
+    summary: str | None = None,
+    sections: list[dict[str, Any]] | None = None,
+    tables: list[dict[str, Any]] | None = None,
+    key_values: dict[str, Any] | None = None,
+    warnings: list[str] | None = None,
+    level: str = "info",
+) -> dict[str, Any]:
+    """Placeholder for the later structured rich report tool."""
+    return {"status": "error", "message": "chimerax_rich_report is not implemented yet"}
 
 
 @mcp.tool()
@@ -697,9 +845,7 @@ def chimerax_list_screenshots() -> dict[str, Any]:
                     "path": str(f),
                     "name": f.name,
                     "size_bytes": stat.st_size,
-                    "modified": datetime.datetime.fromtimestamp(
-                        stat.st_mtime, tz=datetime.timezone.utc
-                    )
+                    "modified": datetime.datetime.fromtimestamp(stat.st_mtime, tz=datetime.UTC)
                     .isoformat()
                     .replace("+00:00", "Z"),
                 }
