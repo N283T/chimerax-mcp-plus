@@ -204,12 +204,28 @@ def run_python_api_script(client: Any, script: str) -> dict[str, Any]:
 
         result = client.run_command(f"runscript {_quote_chimerax_path(temp_path)}")
     except httpx.HTTPError as err:
-        return {"status": "error", "message": str(err), "error_type": type(err).__name__}
+        return {
+            "status": "error",
+            "message": f"HTTP error running ChimeraX command: {err}",
+            "error_type": type(err).__name__,
+        }
     finally:
         if temp_path is not None:
             temp_path.unlink(missing_ok=True)
 
     chimerax_error = result.get("error")
+    if isinstance(chimerax_error, dict):
+        return {
+            "status": "error",
+            "message": str(chimerax_error.get("message", "ChimeraX command failed")),
+            "error_type": str(chimerax_error.get("type", "ChimeraXError")),
+            "error": chimerax_error,
+        }
     if chimerax_error:
-        return {"status": "error", "message": "ChimeraX command failed", "error": chimerax_error}
+        return {
+            "status": "error",
+            "message": str(chimerax_error),
+            "error_type": "ChimeraXError",
+            "error": chimerax_error,
+        }
     return parse_introspection_result(result)

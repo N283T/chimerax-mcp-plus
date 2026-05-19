@@ -1,10 +1,18 @@
 """Tests for live ChimeraX Python API introspection helpers."""
 
+import json
+import shlex
+from pathlib import Path
+from typing import Any
+
+import httpx
+
 from chimerax_mcp.python_api import (
     MARKER,
     build_python_dir_script,
     build_python_inspect_script,
     parse_introspection_result,
+    run_python_api_script,
     validate_symbol,
 )
 
@@ -64,3 +72,50 @@ def test_parse_introspection_result_returns_error_when_payload_missing() -> None
         "status": "error",
         "message": "No introspection JSON payload found in ChimeraX output",
     }
+
+
+def test_run_python_api_script_runs_temp_file_and_returns_payload() -> None:
+    payload = {"status": "ok", "value": 42}
+
+    class FakeClient:
+        command: str
+        path: Path
+        path_existed_during_run: bool
+
+        def run_command(self, command: str) -> dict[str, Any]:
+            self.command = command
+            self.path = Path(shlex.split(command.removeprefix("runscript "))[0])
+            self.path_existed_during_run = self.path.exists()
+            return {"log_messages": {"info": [MARKER + json.dumps(payload)]}}
+
+    client = FakeClient()
+
+    result = run_python_api_script(client, "print('hello')")
+
+    assert client.command.startswith("runscript ")
+    assert result == payload
+    assert client.path_existed_during_run is True
+    assert not client.path.exists()
+
+
+def test_run_python_api_script_returns_http_error_status() -> None:
+    class FakeClient:
+        def run_command(self, command: str) -> dict[str, Any]:
+            raise httpx.ConnectError("boom")
+
+    result = run_python_api_script(FakeClient(), "print('hello')")
+
+    assert result["status"] == "error"
+    assert "HTTP error" in result["message"]
+
+
+def test_run_python_api_script_returns_chimerax_error_details() -> None:
+    class FakeClient:
+        def run_command(self, command: str) -> dict[str, Any]:
+            return {"error": {"type": "UserError", "message": "bad script"}}
+
+    result = run_python_api_script(FakeClient(), "print('hello')")
+
+    assert result["status"] == "error"
+    assert result["error_type"] == "UserError"
+    assert result["message"] == "bad script"
