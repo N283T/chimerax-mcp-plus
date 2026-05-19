@@ -32,6 +32,17 @@ MIN_IMAGE_DIMENSION = 1
 # View management constants
 VALID_AXES = {"x", "y", "z"}
 VALID_LOG_LEVELS = {"error", "info", "warning"}
+VALID_RICH_REPORT_THEMES = {"auto", "dark", "light"}
+VALID_RICH_REPORT_BLOCK_TYPES = {
+    "badges",
+    "callout",
+    "cards",
+    "heading",
+    "html",
+    "legend",
+    "paragraph",
+    "table",
+}
 RICH_LOG_OK_SENTINEL = "__CHIMERAX_MCP_RICH_LOG_OK__"
 RICH_LOG_ERROR_SENTINEL = "__CHIMERAX_MCP_RICH_LOG_ERROR__"
 _RESET_COMMANDS = [
@@ -420,120 +431,332 @@ def _write_rich_log(html: str, level: str) -> dict[str, Any]:
             script_path.unlink()
 
 
-def _render_rich_report_table(table: dict[str, Any]) -> str:
-    """Render a structured table for generated rich report HTML."""
-    title = _escape_html_value(table.get("title", ""))
-    columns_value = table.get("columns") or []
-    rows_value = table.get("rows") or []
-    columns = columns_value if isinstance(columns_value, (list, tuple)) else []
-    rows = rows_value if isinstance(rows_value, (list, tuple)) else []
+def _rich_report_theme(theme: str, accent_color: str | None = None) -> dict[str, str]:
+    """Return inline color tokens for rich report rendering."""
+    normalized = theme.strip().lower()
+    if normalized == "light":
+        default_accent = accent_color or "#0673c8"
+        return {
+            "accent": default_accent,
+            "bg": "#ffffff",
+            "text": "#111827",
+            "muted": "#4b5563",
+            "panel": "#f8fafc",
+            "border": "#cbd5e1",
+            "card": "#f8fafc",
+            "table_header": default_accent,
+            "badge": "#2563eb",
+            "badge_text": "#ffffff",
+            "callout_note_bg": "#eff6ff",
+            "callout_note_border": "#2563eb",
+            "callout_success_bg": "#ecfdf5",
+            "callout_success_border": "#16a34a",
+            "callout_warning_bg": "#fffbeb",
+            "callout_warning_border": "#d97706",
+            "callout_danger_bg": "#fef2f2",
+            "callout_danger_border": "#dc2626",
+        }
+
+    default_accent = accent_color or "#58a6ff"
+    return {
+        "accent": default_accent,
+        "bg": "#0d1117",
+        "text": "#e6edf3",
+        "muted": "#8b949e",
+        "panel": "#161b22",
+        "border": "#30363d",
+        "card": "#161b22",
+        "table_header": "#1f6feb",
+        "badge": "#1f6feb",
+        "badge_text": "#ffffff",
+        "callout_note_bg": "#10233f",
+        "callout_note_border": "#58a6ff",
+        "callout_success_bg": "#0f2a1a",
+        "callout_success_border": "#238636",
+        "callout_warning_bg": "#2d2302",
+        "callout_warning_border": "#d29922",
+        "callout_danger_bg": "#3d1117",
+        "callout_danger_border": "#da3633",
+    }
+
+
+def _validate_rich_report_blocks(blocks: list[dict[str, Any]] | None) -> str | None:
+    """Validate rich report blocks and return an error message, if invalid."""
+    if blocks is None:
+        return None
+    if not isinstance(blocks, list):
+        return "blocks must be a list"
+
+    for index, block in enumerate(blocks):
+        if not isinstance(block, dict):
+            return f"blocks[{index}] must be an object"
+        block_type = str(block.get("type", "")).strip().lower()
+        if block_type not in VALID_RICH_REPORT_BLOCK_TYPES:
+            return (
+                f"blocks[{index}].type must be one of: "
+                f"{', '.join(sorted(VALID_RICH_REPORT_BLOCK_TYPES))}"
+            )
+        if block_type == "table":
+            columns = block.get("columns", [])
+            rows = block.get("rows", [])
+            if not isinstance(columns, (list, tuple)):
+                return f"blocks[{index}].columns must be a list"
+            if not isinstance(rows, (list, tuple)):
+                return f"blocks[{index}].rows must be a list"
+        if block_type in {"cards", "badges", "legend"}:
+            items = block.get("items", [])
+            if not isinstance(items, (list, tuple)):
+                return f"blocks[{index}].items must be a list"
+    return None
+
+
+def _rich_report_text_or_html(block: dict[str, Any], field: str = "text") -> str:
+    """Render a block text field, preserving trusted raw HTML when present."""
+    if block.get("html") is not None:
+        return str(block["html"])
+    return _escape_html_value(block.get(field, ""))
+
+
+def _rich_report_cell_html(cell: Any) -> tuple[str, str]:
+    """Return rendered cell HTML and optional inline style."""
+    if isinstance(cell, dict):
+        style = str(cell.get("style", ""))
+        if cell.get("html") is not None:
+            return str(cell["html"]), style
+        return _escape_html_value(cell.get("text", "")), style
+    return _escape_html_value(cell), ""
+
+
+def _tone_color(tone: str, tokens: dict[str, str]) -> tuple[str, str]:
+    """Return background and border colors for a callout tone."""
+    normalized = tone.strip().lower()
+    if normalized not in {"note", "success", "warning", "danger"}:
+        normalized = "note"
+    return (
+        tokens[f"callout_{normalized}_bg"],
+        tokens[f"callout_{normalized}_border"],
+    )
+
+
+def _badge_color(item: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Return a badge color from explicit color or tone."""
+    if item.get("color"):
+        return str(item["color"])
+    tone = str(item.get("tone", "")).strip().lower()
+    if tone == "success":
+        return tokens["callout_success_border"]
+    if tone == "warning":
+        return tokens["callout_warning_border"]
+    if tone == "danger":
+        return tokens["callout_danger_border"]
+    return tokens["badge"]
+
+
+def _render_rich_report_heading(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render a rich report heading block."""
+    level = block.get("level", 2)
+    tag = "h3" if level == 3 else "h2"
+    size = "18px" if tag == "h3" else "20px"
+    return (
+        f'<{tag} style="font-size:{size}; margin:16px 0 8px 0; '
+        f'color:{tokens["text"]};">{_escape_html_value(block.get("text", ""))}</{tag}>'
+    )
+
+
+def _render_rich_report_paragraph(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render a paragraph block."""
+    return (
+        f'<p style="margin:0 0 12px 0; color:{tokens["text"]};">'
+        f"{_rich_report_text_or_html(block)}</p>"
+    )
+
+
+def _render_rich_report_cards(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render metric cards."""
+    cards: list[str] = []
+    for item in block.get("items", []):
+        if not isinstance(item, dict):
+            item = {"label": "", "value": item}
+        value_color = str(item.get("color") or tokens["text"])
+        note = item.get("note")
+        note_html = ""
+        if note is not None:
+            note_html = (
+                f'<div style="color:{tokens["muted"]}; font-size:12px; margin-top:3px;">'
+                f"{_escape_html_value(note)}</div>"
+            )
+        cards.append(
+            f'<div style="background:{tokens["card"]}; border:1px solid {tokens["border"]}; '
+            'border-radius:10px; padding:10px;">'
+            f'<div style="color:{tokens["muted"]}; font-size:12px; font-weight:700;">'
+            f"{_escape_html_value(item.get('label', ''))}</div>"
+            f'<div style="font-size:20px; font-weight:800; color:{value_color};">'
+            f"{_escape_html_value(item.get('value', ''))}</div>"
+            f"{note_html}</div>"
+        )
+    return (
+        '<div style="display:grid; grid-template-columns:repeat(4,minmax(120px,1fr)); '
+        f'gap:10px; margin:12px 0 18px 0;">{"".join(cards)}</div>'
+    )
+
+
+def _render_rich_report_table(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render a styled table block."""
+    title = _escape_html_value(block.get("title", ""))
+    columns = block.get("columns") or []
+    rows = block.get("rows") or []
+    header_color = str(block.get("header_color") or tokens["table_header"])
+    column_styles = block.get("column_styles") or {}
+    cell_styles = block.get("cell_styles") or []
 
     header_cells = "".join(
-        f"<th>{_escape_html_value(column)}</th>" for column in columns
+        f'<th style="background:{header_color}; color:white; text-align:left; padding:8px 10px; '
+        f'border:1px solid {tokens["border"]};{column_styles.get(str(index), "")}">'
+        f"{_escape_html_value(column)}</th>"
+        for index, column in enumerate(columns)
     )
-    body_rows: list[str] = []
-    for row in rows:
-        cells = row if isinstance(row, (list, tuple)) else [row]
-        body_cells = "".join(f"<td>{_escape_html_value(cell)}</td>" for cell in cells)
-        body_rows.append(f"<tr>{body_cells}</tr>")
 
-    html_parts = [
-        '<div class="chimerax-mcp-rich-report-table" style="margin: 0.75em 0;">'
-    ]
+    body_rows: list[str] = []
+    for row_index, row in enumerate(rows):
+        cells = row if isinstance(row, (list, tuple)) else [row]
+        body_cells: list[str] = []
+        row_cell_styles = cell_styles[row_index] if row_index < len(cell_styles) else []
+        for cell_index, cell in enumerate(cells):
+            cell_html, cell_style = _rich_report_cell_html(cell)
+            extra_style = ""
+            if isinstance(row_cell_styles, (list, tuple)) and cell_index < len(row_cell_styles):
+                extra_style = str(row_cell_styles[cell_index] or "")
+            body_cells.append(
+                f'<td style="padding:8px 10px; border:1px solid {tokens["border"]}; '
+                f'{extra_style}{cell_style}">{cell_html}</td>'
+            )
+        body_rows.append(f"<tr>{''.join(body_cells)}</tr>")
+
+    table_html = ['<div class="chimerax-mcp-rich-report-table" style="margin:14px 0 18px 0;">']
     if title:
-        html_parts.append(f'<h4 style="margin: 0 0 0.35em 0;">{title}</h4>')
-    html_parts.extend(
+        table_html.append(
+            f'<h2 style="font-size:20px; margin:0 0 8px 0; color:{tokens["text"]};">{title}</h2>'
+        )
+    table_html.extend(
         [
-            '<table style="border-collapse: collapse; width: 100%;">',
-            "<thead>",
-            f"<tr>{header_cells}</tr>",
-            "</thead>",
-            "<tbody>",
-            *body_rows,
-            "</tbody>",
+            '<table style="border-collapse:collapse; width:100%; font-size:15px;">',
+            f"<thead><tr>{header_cells}</tr></thead>",
+            f"<tbody>{''.join(body_rows)}</tbody>",
             "</table>",
             "</div>",
         ]
     )
-    return "\n".join(html_parts)
+    return "".join(table_html)
 
 
-def _validate_rich_report_tables(tables: list[dict[str, Any]] | None) -> str | None:
-    """Validate rich report table shapes accepted from MCP clients."""
-    if tables is None:
-        return None
+def _render_rich_report_callout(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render a callout block."""
+    bg, border = _tone_color(str(block.get("tone", "note")), tokens)
+    title = _escape_html_value(block.get("title", ""))
+    title_html = f"<b>{title}</b> " if title else ""
+    return (
+        f'<div style="border-left:4px solid {border}; background:{bg}; padding:8px 10px; '
+        f'color:{tokens["text"]}; border-radius:6px; margin:12px 0;">'
+        f"{title_html}{_rich_report_text_or_html(block)}</div>"
+    )
 
-    for index, table in enumerate(tables):
-        if not isinstance(table, dict):
-            return f"tables[{index}] must be a dict"
 
-        columns = table.get("columns")
-        if columns is not None and not isinstance(columns, (list, tuple)):
-            return f"tables[{index}].columns must be a list"
+def _render_rich_report_badges(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render inline badges."""
+    badges: list[str] = []
+    for item in block.get("items", []):
+        item_dict = item if isinstance(item, dict) else {"label": item}
+        color = _badge_color(item_dict, tokens)
+        badges.append(
+            f'<span style="display:inline-block; background:{color}; color:{tokens["badge_text"]}; '
+            "border-radius:999px; padding:4px 10px; font-weight:700; font-size:12px; "
+            f'margin:0 6px 6px 0;">{_escape_html_value(item_dict.get("label", ""))}</span>'
+        )
+    return f'<div style="margin:8px 0 12px 0;">{"".join(badges)}</div>'
 
-        rows = table.get("rows")
-        if rows is not None and not isinstance(rows, (list, tuple)):
-            return f"tables[{index}].rows must be a list"
 
-    return None
+def _render_rich_report_legend(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render a compact color legend."""
+    items: list[str] = []
+    for item in block.get("items", []):
+        if not isinstance(item, dict):
+            item = {"label": item, "color": tokens["accent"]}
+        color = str(item.get("color") or tokens["accent"])
+        description = item.get("description")
+        description_html = ""
+        if description is not None:
+            description_html = (
+                f' <span style="color:{tokens["muted"]};">{_escape_html_value(description)}</span>'
+            )
+        items.append(
+            '<div style="display:flex; align-items:center; gap:8px; margin:4px 12px 4px 0;">'
+            f'<span style="display:inline-block; width:14px; height:14px; border-radius:3px; '
+            f'background:{color}; border:1px solid {tokens["border"]};"></span>'
+            f"<span><b>{_escape_html_value(item.get('label', ''))}</b>{description_html}</span>"
+            "</div>"
+        )
+    return (
+        f'<div style="display:flex; flex-wrap:wrap; color:{tokens["text"]}; '
+        f'margin:10px 0 14px 0;">{"".join(items)}</div>'
+    )
+
+
+def _render_rich_report_block(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render one rich report block."""
+    block_type = str(block.get("type", "")).strip().lower()
+    if block_type == "heading":
+        return _render_rich_report_heading(block, tokens)
+    if block_type == "paragraph":
+        return _render_rich_report_paragraph(block, tokens)
+    if block_type == "cards":
+        return _render_rich_report_cards(block, tokens)
+    if block_type == "table":
+        return _render_rich_report_table(block, tokens)
+    if block_type == "callout":
+        return _render_rich_report_callout(block, tokens)
+    if block_type == "badges":
+        return _render_rich_report_badges(block, tokens)
+    if block_type == "legend":
+        return _render_rich_report_legend(block, tokens)
+    if block_type == "html":
+        return str(block.get("html", ""))
+    return ""
 
 
 def _build_rich_report_html(
     title: str,
-    summary: str | None = None,
-    sections: list[dict[str, Any]] | None = None,
-    tables: list[dict[str, Any]] | None = None,
-    key_values: dict[str, Any] | None = None,
-    warnings: list[str] | None = None,
+    subtitle: str | None = None,
+    theme: str = "auto",
+    accent_color: str | None = None,
+    blocks: list[dict[str, Any]] | None = None,
 ) -> str:
-    """Build escaped HTML for a generic structured rich report."""
+    """Build themed rich report HTML for the ChimeraX Log."""
+    tokens = _rich_report_theme(theme, accent_color)
     html_parts = [
         '<div class="chimerax-mcp-rich-report" '
-        'style="font-family: -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif; '
-        'line-height: 1.35; margin: 0.4em 0;">',
-        f'<h2 style="margin: 0 0 0.35em 0; font-size: 1.25em;">{_escape_html_value(title)}</h2>',
+        f'style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif; '
+        f"color:{tokens['text']}; background:{tokens['bg']}; "
+        f"border:1px solid {tokens['border']}; border-radius:12px; padding:16px 18px; "
+        'max-width:1040px; line-height:1.38; box-shadow:0 2px 10px rgba(0,0,0,.20);">',
+        '<div style="display:flex; align-items:flex-start; justify-content:space-between; '
+        f"gap:16px; border-bottom:3px solid {tokens['accent']}; padding-bottom:10px; "
+        'margin-bottom:14px;">',
+        "<div>",
+        f'<div style="font-size:12px; letter-spacing:.08em; text-transform:uppercase; '
+        f'color:{tokens["muted"]}; font-weight:700;">ChimeraX analysis note</div>',
+        f'<h1 style="font-size:28px; color:{tokens["accent"]}; margin:2px 0 2px 0;">'
+        f"{_escape_html_value(title.strip())}</h1>",
     ]
-
-    if summary:
+    if subtitle:
         html_parts.append(
-            f'<p class="chimerax-mcp-rich-report-summary">{_escape_html_value(summary)}</p>'
+            f'<div style="font-size:14px; color:{tokens["text"]};">'
+            f"{_escape_html_value(subtitle)}</div>"
         )
-
-    if key_values:
-        html_parts.append('<dl class="chimerax-mcp-rich-report-key-values">')
-        for key, value in key_values.items():
-            html_parts.append(f"<dt>{_escape_html_value(key)}</dt>")
-            html_parts.append(f"<dd>{_escape_html_value(value)}</dd>")
-        html_parts.append("</dl>")
-
-    if warnings:
-        html_parts.extend(
-            [
-                '<div class="chimerax-mcp-rich-report-warnings" '
-                'style="border-left: 0.25em solid #d99000; padding-left: 0.75em;">',
-                '<h3 style="margin: 0 0 0.35em 0;">Warnings</h3>',
-                "<ul>",
-            ]
-        )
-        for warning in warnings:
-            html_parts.append(f"<li>{_escape_html_value(warning)}</li>")
-        html_parts.extend(["</ul>", "</div>"])
-
-    for section in sections or []:
-        heading = _escape_html_value(section.get("heading", ""))
-        body = _escape_html_value(section.get("body", ""))
-        html_parts.append('<section class="chimerax-mcp-rich-report-section">')
-        if heading:
-            html_parts.append(f'<h3 style="margin: 0.75em 0 0.35em 0;">{heading}</h3>')
-        if body:
-            html_parts.append(f"<p>{body}</p>")
-        html_parts.append("</section>")
-
-    for table in tables or []:
-        html_parts.append(_render_rich_report_table(table))
-
+    html_parts.extend(["</div>", "</div>"])
+    for block in blocks or []:
+        html_parts.append(_render_rich_report_block(block, tokens))
     html_parts.append("</div>")
-    return "\n".join(html_parts)
+    return "".join(html_parts)
 
 
 @mcp.tool()
@@ -589,22 +812,23 @@ def chimerax_rich_log(
 @mcp.tool()
 def chimerax_rich_report(
     title: str,
-    summary: str | None = None,
-    sections: list[dict[str, Any]] | None = None,
-    tables: list[dict[str, Any]] | None = None,
-    key_values: dict[str, Any] | None = None,
-    warnings: list[str] | None = None,
+    subtitle: str | None = None,
+    theme: str = "auto",
+    accent_color: str | None = None,
+    blocks: list[dict[str, Any]] | None = None,
     level: str = "info",
 ) -> dict[str, Any]:
-    """Write an escaped structured rich report to the ChimeraX Log.
+    """Compose a themed rich HTML report for the ChimeraX Log.
+
+    Plain text fields are escaped. Raw ``html`` block fields are trusted local
+    input and are inserted as-is.
 
     Args:
         title: Report title.
-        summary: Optional summary paragraph.
-        sections: Optional sections with ``heading`` and ``body`` values.
-        tables: Optional tables with ``title``, ``columns``, and ``rows`` values.
-        key_values: Optional key/value facts rendered as a definition list.
-        warnings: Optional warning messages rendered as a callout list.
+        subtitle: Optional subtitle below the title.
+        theme: Visual theme - ``auto``, ``dark``, or ``light`` (default: auto).
+        accent_color: Optional primary accent color.
+        blocks: Ordered rich content blocks.
         level: Log level - ``info``, ``warning``, or ``error`` (default: info).
 
     Returns:
@@ -620,17 +844,23 @@ def chimerax_rich_report(
             "message": f"level must be one of: {', '.join(sorted(VALID_LOG_LEVELS))}",
         }
 
-    validation_error = _validate_rich_report_tables(tables)
+    normalized_theme = theme.strip().lower()
+    if normalized_theme not in VALID_RICH_REPORT_THEMES:
+        return {
+            "status": "error",
+            "message": f"theme must be one of: {', '.join(sorted(VALID_RICH_REPORT_THEMES))}",
+        }
+
+    validation_error = _validate_rich_report_blocks(blocks)
     if validation_error is not None:
         return {"status": "error", "message": validation_error}
 
     report_html = _build_rich_report_html(
         title=title,
-        summary=summary,
-        sections=sections,
-        tables=tables,
-        key_values=key_values,
-        warnings=warnings,
+        subtitle=subtitle,
+        theme=normalized_theme,
+        accent_color=accent_color,
+        blocks=blocks,
     )
     return _write_rich_log(html=report_html, level=normalized_level)
 

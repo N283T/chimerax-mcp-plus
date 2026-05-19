@@ -1034,12 +1034,7 @@ class TestRichLog:
             return {
                 "python_values": [],
                 "json_values": [],
-                "log_messages": {
-                    "info": [
-                        "<p>Rendered HTML and command echo</p>\n"
-                        f"{marker}\n"
-                    ]
-                },
+                "log_messages": {"info": [f"<p>Rendered HTML and command echo</p>\n{marker}\n"]},
                 "error": None,
             }
 
@@ -1288,4 +1283,3 @@ class TestRichReport:
         assert "Composer output" in captured["html"]
         assert "Models" in captured["html"]
         assert "Complete" in captured["html"]
-
