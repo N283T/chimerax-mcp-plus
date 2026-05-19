@@ -12,8 +12,14 @@ from chimerax_mcp.server import (
     MIN_IMAGE_DIMENSION,
     VALID_AXES,
     VALID_IMAGE_FORMATS,
+    VALID_LOG_LEVELS,
+    _build_rich_log_html,
+    _build_rich_log_script,
+    _build_rich_report_html,
     _build_tool_screenshot_script,
     chimerax_reset,
+    chimerax_rich_log,
+    chimerax_rich_report,
     chimerax_screenshot,
     chimerax_status,
     chimerax_tool_screenshot,
@@ -872,3 +878,94 @@ class TestConstants:
 
     def test_valid_axes(self):
         assert {"x", "y", "z"} == VALID_AXES
+
+
+class TestRichLog:
+    """Tests for chimerax_rich_log and helper script generation."""
+
+    def test_valid_log_levels(self):
+        assert VALID_LOG_LEVELS == {"error", "info", "warning"}
+
+    def test_rich_log_rejects_empty_html(self):
+        result = chimerax_rich_log.fn(html="   ")
+        assert result["status"] == "error"
+        assert "html" in result["message"].lower()
+        assert "empty" in result["message"].lower()
+
+    def test_rich_log_rejects_invalid_level(self):
+        result = chimerax_rich_log.fn(html="<b>Hello</b>", level="debug")
+        assert result["status"] == "error"
+        assert "level" in result["message"].lower()
+        assert "error, info, warning" in result["message"]
+
+    def test_rich_log_not_running(self):
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: False  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(html="<b>Hello</b>")
+
+        assert result["status"] == "error"
+        assert "not running" in result["message"].lower()
+
+    def test_build_rich_log_html_adds_optional_title(self):
+        html = _build_rich_log_html("<p>Body</p>", title="Analysis <One>")
+        assert "chimerax-mcp-rich-log" in html
+        assert "Analysis &lt;One&gt;" in html
+        assert "<p>Body</p>" in html
+
+    def test_build_rich_log_html_without_title_keeps_html(self):
+        assert _build_rich_log_html("<em>Body</em>") == "<em>Body</em>"
+
+    def test_build_rich_log_script_uses_html_logger_and_thread_safe(self):
+        script = _build_rich_log_script("<p>Hello</p>", "warning")
+        assert "html_content = '<p>Hello</p>'" in script
+        assert "logger_method = session.logger.warning" in script
+        assert "is_html=True" in script
+        assert "session.ui.thread_safe(write_log)" in script
+        assert "write_log()" in script
+        assert "OK: rich log written" in script
+
+    def test_rich_log_sends_runscript_when_running(self):
+        mock_client = ChimeraXClient(port=59998)
+        commands_run: list[str] = []
+
+        def fake_run_command(cmd: str):
+            commands_run.append(cmd)
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {"info": ["OK: rich log written"]},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(
+                html="<strong>Result</strong>", level="info", title="Summary"
+            )
+
+        assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
+        assert len(commands_run) == 1
+        assert commands_run[0].startswith("runscript ")
+
+    def test_rich_log_returns_script_error(self):
+        mock_client = ChimeraXClient(port=59998)
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {"info": ["ERROR: boom"]},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(html="<p>Hi</p>")
+
+        assert result == {"status": "error", "message": "boom"}
