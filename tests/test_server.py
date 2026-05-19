@@ -1,5 +1,6 @@
 """Tests for MCP server tools."""
 
+import json
 import os
 from pathlib import Path
 from unittest.mock import patch
@@ -18,6 +19,10 @@ from chimerax_mcp.server import (
     _build_rich_log_script,
     _build_rich_report_html,
     _build_tool_screenshot_script,
+    chimerax_api_read,
+    chimerax_api_search,
+    chimerax_python_dir,
+    chimerax_python_inspect,
     chimerax_reset,
     chimerax_rich_log,
     chimerax_rich_report,
@@ -243,6 +248,69 @@ class TestStartTool:
             "message": "ChimeraX is already running",
             "version": "UCSF ChimeraX version 1.11.1",
         }
+
+
+class TestApiReferenceTools:
+    def test_chimerax_api_search_returns_atomic_module_results(self):
+        result = chimerax_api_search.fn(query="AtomicStructure residues", kind="modules", limit=5)
+
+        assert result["status"] == "ok"
+        assert any("atomic" in item["name"].lower() for item in result["results"])
+
+    def test_chimerax_api_read_returns_atomic_content(self):
+        result = chimerax_api_read.fn(target="atomic", max_chars=500)
+
+        assert result["status"] == "ok"
+        assert result["target"] == "atomic"
+        assert "Atomic structures" in result["content"]
+
+    def test_chimerax_python_inspect_not_running(self):
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: False  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_python_inspect.fn(symbol="chimerax.atomic.AtomicStructure")
+
+        assert result == {"status": "error", "message": "ChimeraX is not running"}
+
+    def test_chimerax_python_inspect_rejects_unsafe_symbol_before_client_check(self):
+        def fail_get_client():
+            raise AssertionError("unsafe symbols should be rejected before client lookup")
+
+        with patch("chimerax_mcp.server.get_client", side_effect=fail_get_client):
+            result = chimerax_python_inspect.fn(symbol="os")
+
+        assert result["status"] == "error"
+        assert "dotted import path" in result["message"]
+
+    def test_chimerax_python_dir_delegates_to_runscript(self):
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+
+        expected = {
+            "status": "ok",
+            "symbol": "chimerax.atomic",
+            "attributes": ["AtomicStructure"],
+            "truncated": False,
+        }
+
+        def fake_run_command(command: str):
+            assert command.startswith("runscript")
+            return {
+                "log_messages": {
+                    "info": [
+                        "CHIMERAX_MCP_PYTHON_API_JSON="
+                        + json.dumps(expected, sort_keys=True)
+                    ],
+                },
+            }
+
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_python_dir.fn(symbol="chimerax.atomic")
+
+        assert result == expected
 
 
 class TestViewTool:
