@@ -5,6 +5,7 @@ from __future__ import annotations
 import atexit
 import contextlib
 import datetime
+import html as html_lib
 import os
 import subprocess
 import tempfile
@@ -29,6 +30,20 @@ MIN_IMAGE_DIMENSION = 1
 
 # View management constants
 VALID_AXES = {"x", "y", "z"}
+VALID_LOG_LEVELS = {"error", "info", "warning"}
+VALID_RICH_REPORT_THEMES = {"auto", "dark", "light"}
+VALID_RICH_REPORT_BLOCK_TYPES = {
+    "badges",
+    "callout",
+    "cards",
+    "columns",
+    "heading",
+    "html",
+    "legend",
+    "paragraph",
+    "progress",
+    "table",
+}
 _RESET_COMMANDS = [
     "hide pseudobonds",
     "hide atoms",
@@ -80,6 +95,7 @@ def chimerax_start(
     nogui: bool = False,
     wait_seconds: int = 15,
     background: bool = False,
+    include_version: bool = False,
 ) -> dict[str, Any]:
     """Start ChimeraX with REST API enabled.
 
@@ -89,6 +105,9 @@ def chimerax_start(
         wait_seconds: Seconds to wait for startup (default: 15)
         background: If True, return immediately and let ChimeraX start in background.
             Use chimerax_status to check if ready. (default: False)
+        include_version: If True, run the ChimeraX ``version`` command once
+            after connecting and include it in the response. Defaults to False
+            to avoid writing version checks to the ChimeraX Log.
 
     Returns:
         Status of the startup attempt.
@@ -99,14 +118,22 @@ def chimerax_start(
 
     # Check if already running via REST API
     if client.is_running():
-        return {"status": "already_running", "message": "ChimeraX is already running"}
+        response = {"status": "already_running", "message": "ChimeraX is already running"}
+        if include_version:
+            try:
+                response["version"] = client.get_version()
+            except httpx.HTTPError:
+                response["version"] = "unknown"
+        return response
 
     # Check if we already have a process (might be starting up)
     if _process is not None and _process.poll() is None:
         if background:
             return {
                 "status": "starting",
-                "message": "ChimeraX is starting in background. Use chimerax_status to check readiness.",
+                "message": (
+                    "ChimeraX is starting in background. Use chimerax_status to check readiness."
+                ),
             }
         # Process exists and is still running - wait for it
         # Initial sleep to allow process to initialize
@@ -115,19 +142,23 @@ def chimerax_start(
         for _ in range(max(remaining_checks, 1)):
             time.sleep(0.5)
             if client.is_running():
-                try:
-                    version = client.get_version()
-                except httpx.HTTPError:
-                    version = "unknown"
-                return {
+                response = {
                     "status": "started",
                     "port": port,
-                    "version": version,
                     "note": "Connected to existing process",
                 }
+                if include_version:
+                    try:
+                        response["version"] = client.get_version()
+                    except httpx.HTTPError:
+                        response["version"] = "unknown"
+                return response
         return {
             "status": "timeout",
-            "message": f"Process exists but REST API not ready in {wait_seconds}s. ChimeraX may still be starting - try chimerax_status later.",
+            "message": (
+                f"Process exists but REST API not ready in {wait_seconds}s. "
+                "ChimeraX may still be starting - try chimerax_status later."
+            ),
         }
 
     try:
@@ -138,7 +169,9 @@ def chimerax_start(
     if background:
         return {
             "status": "starting",
-            "message": "ChimeraX is starting in background. Use chimerax_status to check readiness.",
+            "message": (
+                "ChimeraX is starting in background. Use chimerax_status to check readiness."
+            ),
         }
 
     # Initial sleep to allow ChimeraX to launch (especially important on macOS)
@@ -148,19 +181,23 @@ def chimerax_start(
     for _ in range(max(remaining_checks, 1)):
         time.sleep(0.5)
         if client.is_running():
-            try:
-                version = client.get_version()
-            except httpx.HTTPError:
-                version = "unknown"
-            return {
+            response = {
                 "status": "started",
                 "port": port,
-                "version": version,
             }
+            if include_version:
+                try:
+                    response["version"] = client.get_version()
+                except httpx.HTTPError:
+                    response["version"] = "unknown"
+            return response
 
     return {
         "status": "timeout",
-        "message": f"ChimeraX did not respond within {wait_seconds}s. The process is still running - try chimerax_status in a few seconds.",
+        "message": (
+            f"ChimeraX did not respond within {wait_seconds}s. "
+            "The process is still running - try chimerax_status in a few seconds."
+        ),
     }
 
 
@@ -189,19 +226,26 @@ def chimerax_stop() -> dict[str, Any]:
 
 
 @mcp.tool()
-def chimerax_status() -> dict[str, Any]:
+def chimerax_status(include_version: bool = False) -> dict[str, Any]:
     """Check if ChimeraX REST server is running.
+
+    Args:
+        include_version: If True, run the ChimeraX ``version`` command once
+            and include it in the response. Defaults to False to avoid writing
+            version checks to the ChimeraX Log.
 
     Returns:
         Connection status and version if running.
     """
     client = get_client()
     if client.is_running():
-        try:
-            version = client.get_version()
-        except httpx.HTTPError:
-            version = "unknown"
-        return {"status": "ok", "running": True, "version": version}
+        response: dict[str, Any] = {"status": "ok", "running": True}
+        if include_version:
+            try:
+                response["version"] = client.get_version()
+            except httpx.HTTPError:
+                response["version"] = "unknown"
+        return response
     return {"status": "ok", "running": False}
 
 
@@ -257,6 +301,627 @@ def _run_command(command: str) -> dict[str, Any]:
     return _format_response(result)
 
 
+def _validate_log_level(level: str) -> str | None:
+    """Normalize and validate a ChimeraX logger level."""
+    normalized = level.strip().lower()
+    if normalized not in VALID_LOG_LEVELS:
+        return None
+    return normalized
+
+
+def _quote_chimerax_path(path: Path) -> str:
+    """Quote a path for a ChimeraX command when quoting is needed."""
+    path_str = str(path)
+    if (
+        not any(char.isspace() for char in path_str)
+        and '"' not in path_str
+        and "\\" not in path_str
+    ):
+        return path_str
+    escaped = path_str.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def _build_rich_log_html(html: str, title: str | None = None) -> str:
+    """Wrap trusted caller-provided HTML with an optional escaped title."""
+    if title is None or not title.strip():
+        return html
+    escaped_title = html_lib.escape(title.strip())
+    return "\n".join(
+        [
+            '<div class="chimerax-mcp-rich-log" '
+            'style="font-family: -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif; '
+            'line-height: 1.35; margin: 0.4em 0;">',
+            f'<h2 style="margin: 0 0 0.35em 0; font-size: 1.25em;">{escaped_title}</h2>',
+            html,
+            "</div>",
+        ]
+    )
+
+
+def _escape_html_value(value: Any) -> str:
+    """Escape a value for insertion into generated rich report HTML."""
+    if value is None:
+        return ""
+    return html_lib.escape(str(value))
+
+
+def _build_rich_log_script(html: str, level: str, marker_id: str | None = None) -> str:
+    """Build a ChimeraX Python script that writes HTML to the Log."""
+    _ = marker_id
+    direct_logger_hint = (
+        f"    # logger_method = session.logger.{level}"
+        if level in VALID_LOG_LEVELS
+        else "    # logger_method selected by validated level"
+    )
+    lines = [
+        f"html_content = {html!r}",
+        f"level = {level!r}",
+        "",
+        "def write_log():",
+        direct_logger_hint,
+        "    logger_method = getattr(session.logger, level)",
+        "    logger_method(html_content, is_html=True)",
+        "",
+        "ui = getattr(session, 'ui', None)",
+        "if ui is not None and getattr(ui, 'is_gui', False) and hasattr(ui, 'thread_safe'):",
+        "    session.ui.thread_safe(write_log)",
+        "else:",
+        "    write_log()",
+    ]
+    return "\n".join(lines)
+
+
+def _prepare_rich_html_save_path(
+    save_html_path: str | None,
+    overwrite: bool,
+) -> tuple[Path | None, dict[str, Any] | None]:
+    """Validate an optional rich HTML save path before writing to ChimeraX."""
+    if save_html_path is None:
+        return None, None
+
+    path_str = str(save_html_path).strip()
+    if not path_str:
+        return None, {"status": "error", "message": "save_html_path must not be empty"}
+
+    path = Path(path_str).expanduser()
+    if path.exists() and not overwrite:
+        return (
+            None,
+            {
+                "status": "error",
+                "message": f"HTML save path already exists: {path}",
+            },
+        )
+    if path.exists() and path.is_dir():
+        return None, {"status": "error", "message": f"HTML save path is a directory: {path}"}
+    return path, None
+
+
+def _write_rich_log(
+    html: str,
+    level: str,
+    save_html_path: str | None = None,
+    overwrite: bool = False,
+) -> dict[str, Any]:
+    """Execute rich HTML logging inside ChimeraX."""
+    client = get_client()
+    if not client.is_running():
+        return {"status": "error", "message": "ChimeraX is not running"}
+
+    html_path, save_error = _prepare_rich_html_save_path(save_html_path, overwrite)
+    if save_error is not None:
+        return save_error
+
+    script = _build_rich_log_script(html=html, level=level)
+    fd, script_path_str = tempfile.mkstemp(suffix=".py", prefix="chimerax_rich_log_")
+    os.close(fd)
+    script_path = Path(script_path_str)
+    try:
+        script_path.write_text(script)
+        result = client.run_command(f"runscript {_quote_chimerax_path(script_path)}")
+
+        if result.get("error") is not None:
+            err = result["error"]
+            if isinstance(err, dict):
+                return {
+                    "status": "error",
+                    "error_type": err.get("type", "Unknown"),
+                    "message": err.get("message", "Unknown error"),
+                }
+            return {"status": "error", "error_type": "Unknown", "message": str(err)}
+
+        response = {"status": "ok", "level": level, "message": "Rich log written"}
+        if html_path is not None:
+            try:
+                html_path.parent.mkdir(parents=True, exist_ok=True)
+                html_path.write_text(html)
+            except OSError as exc:
+                return {
+                    "status": "error",
+                    "message": f"Rich log written, but failed to save HTML: {exc}",
+                }
+            response["html_path"] = str(html_path)
+        return response
+    except httpx.HTTPError as e:
+        return {"status": "error", "message": f"HTTP error: {e}"}
+    finally:
+        with contextlib.suppress(OSError):
+            script_path.unlink()
+
+
+def _rich_report_theme(theme: str, accent_color: str | None = None) -> dict[str, str]:
+    """Return inline color tokens for rich report rendering."""
+    normalized = theme.strip().lower()
+    if normalized == "auto":
+        light_accent = accent_color or "#0673c8"
+        dark_accent = accent_color or "#58a6ff"
+        return {
+            "style_block": (
+                "<style>"
+                ".chimerax-mcp-rich-report.cxmcp-auto-theme{"
+                f"--cxmcp-accent:{dark_accent};"
+                "--cxmcp-bg:#0d1117;"
+                "--cxmcp-text:#e6edf3;"
+                "--cxmcp-muted:#8b949e;"
+                "--cxmcp-panel:#161b22;"
+                "--cxmcp-border:#30363d;"
+                "--cxmcp-card:#161b22;"
+                "--cxmcp-table-header:#1f6feb;"
+                "--cxmcp-badge:#1f6feb;"
+                "--cxmcp-badge-text:#ffffff;"
+                "--cxmcp-callout-note-bg:#10233f;"
+                "--cxmcp-callout-note-border:#58a6ff;"
+                "--cxmcp-callout-success-bg:#0f2a1a;"
+                "--cxmcp-callout-success-border:#238636;"
+                "--cxmcp-callout-warning-bg:#2d2302;"
+                "--cxmcp-callout-warning-border:#d29922;"
+                "--cxmcp-callout-danger-bg:#3d1117;"
+                "--cxmcp-callout-danger-border:#da3633;"
+                "}"
+                "@media (prefers-color-scheme: light){"
+                ".chimerax-mcp-rich-report.cxmcp-auto-theme{"
+                f"--cxmcp-accent:{light_accent};"
+                "--cxmcp-bg:#ffffff;"
+                "--cxmcp-text:#111827;"
+                "--cxmcp-muted:#4b5563;"
+                "--cxmcp-panel:#f8fafc;"
+                "--cxmcp-border:#cbd5e1;"
+                "--cxmcp-card:#f8fafc;"
+                f"--cxmcp-table-header:{light_accent};"
+                "--cxmcp-badge:#2563eb;"
+                "--cxmcp-badge-text:#ffffff;"
+                "--cxmcp-callout-note-bg:#eff6ff;"
+                "--cxmcp-callout-note-border:#2563eb;"
+                "--cxmcp-callout-success-bg:#ecfdf5;"
+                "--cxmcp-callout-success-border:#16a34a;"
+                "--cxmcp-callout-warning-bg:#fffbeb;"
+                "--cxmcp-callout-warning-border:#d97706;"
+                "--cxmcp-callout-danger-bg:#fef2f2;"
+                "--cxmcp-callout-danger-border:#dc2626;"
+                "}"
+                "}"
+                "</style>"
+            ),
+            "class_suffix": " cxmcp-auto-theme",
+            "color_scheme": "color-scheme:light dark; ",
+            "accent": "var(--cxmcp-accent)",
+            "bg": "var(--cxmcp-bg)",
+            "text": "var(--cxmcp-text)",
+            "muted": "var(--cxmcp-muted)",
+            "panel": "var(--cxmcp-panel)",
+            "border": "var(--cxmcp-border)",
+            "card": "var(--cxmcp-card)",
+            "table_header": "var(--cxmcp-table-header)",
+            "badge": "var(--cxmcp-badge)",
+            "badge_text": "var(--cxmcp-badge-text)",
+            "callout_note_bg": "var(--cxmcp-callout-note-bg)",
+            "callout_note_border": "var(--cxmcp-callout-note-border)",
+            "callout_success_bg": "var(--cxmcp-callout-success-bg)",
+            "callout_success_border": "var(--cxmcp-callout-success-border)",
+            "callout_warning_bg": "var(--cxmcp-callout-warning-bg)",
+            "callout_warning_border": "var(--cxmcp-callout-warning-border)",
+            "callout_danger_bg": "var(--cxmcp-callout-danger-bg)",
+            "callout_danger_border": "var(--cxmcp-callout-danger-border)",
+        }
+    if normalized == "light":
+        default_accent = accent_color or "#0673c8"
+        return {
+            "style_block": "",
+            "class_suffix": "",
+            "color_scheme": "",
+            "accent": default_accent,
+            "bg": "#ffffff",
+            "text": "#111827",
+            "muted": "#4b5563",
+            "panel": "#f8fafc",
+            "border": "#cbd5e1",
+            "card": "#f8fafc",
+            "table_header": default_accent,
+            "badge": "#2563eb",
+            "badge_text": "#ffffff",
+            "callout_note_bg": "#eff6ff",
+            "callout_note_border": "#2563eb",
+            "callout_success_bg": "#ecfdf5",
+            "callout_success_border": "#16a34a",
+            "callout_warning_bg": "#fffbeb",
+            "callout_warning_border": "#d97706",
+            "callout_danger_bg": "#fef2f2",
+            "callout_danger_border": "#dc2626",
+        }
+
+    default_accent = accent_color or "#58a6ff"
+    return {
+        "style_block": "",
+        "class_suffix": "",
+        "color_scheme": "",
+        "accent": default_accent,
+        "bg": "#0d1117",
+        "text": "#e6edf3",
+        "muted": "#8b949e",
+        "panel": "#161b22",
+        "border": "#30363d",
+        "card": "#161b22",
+        "table_header": "#1f6feb",
+        "badge": "#1f6feb",
+        "badge_text": "#ffffff",
+        "callout_note_bg": "#10233f",
+        "callout_note_border": "#58a6ff",
+        "callout_success_bg": "#0f2a1a",
+        "callout_success_border": "#238636",
+        "callout_warning_bg": "#2d2302",
+        "callout_warning_border": "#d29922",
+        "callout_danger_bg": "#3d1117",
+        "callout_danger_border": "#da3633",
+    }
+
+
+def _validate_rich_report_blocks(blocks: list[dict[str, Any]] | None) -> str | None:
+    """Validate rich report blocks and return an error message, if invalid."""
+    if blocks is None:
+        return None
+    if not isinstance(blocks, list):
+        return "blocks must be a list"
+
+    for index, block in enumerate(blocks):
+        if not isinstance(block, dict):
+            return f"blocks[{index}] must be an object"
+        block_type = str(block.get("type", "")).strip().lower()
+        if block_type not in VALID_RICH_REPORT_BLOCK_TYPES:
+            return (
+                f"blocks[{index}].type must be one of: "
+                f"{', '.join(sorted(VALID_RICH_REPORT_BLOCK_TYPES))}"
+            )
+        if block_type == "table":
+            columns = block.get("columns", [])
+            rows = block.get("rows", [])
+            if not isinstance(columns, (list, tuple)):
+                return f"blocks[{index}].columns must be a list"
+            if not isinstance(rows, (list, tuple)):
+                return f"blocks[{index}].rows must be a list"
+        if block_type in {"cards", "badges", "legend", "columns"}:
+            items = block.get("items", [])
+            if not isinstance(items, (list, tuple)):
+                return f"blocks[{index}].items must be a list"
+    return None
+
+
+def _rich_report_text_or_html(block: dict[str, Any], field: str = "text") -> str:
+    """Render a block text field, preserving trusted raw HTML when present."""
+    if block.get("html") is not None:
+        return str(block["html"])
+    return _escape_html_value(block.get(field, ""))
+
+
+def _rich_report_cell_html(cell: Any) -> tuple[str, str]:
+    """Return rendered cell HTML and optional inline style."""
+    if isinstance(cell, dict):
+        style = str(cell.get("style", ""))
+        if cell.get("html") is not None:
+            return str(cell["html"]), style
+        return _escape_html_value(cell.get("text", "")), style
+    return _escape_html_value(cell), ""
+
+
+def _tone_color(tone: str, tokens: dict[str, str]) -> tuple[str, str]:
+    """Return background and border colors for a callout tone."""
+    normalized = tone.strip().lower()
+    if normalized not in {"note", "success", "warning", "danger"}:
+        normalized = "note"
+    return (
+        tokens[f"callout_{normalized}_bg"],
+        tokens[f"callout_{normalized}_border"],
+    )
+
+
+def _badge_color(item: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Return a badge color from explicit color or tone."""
+    if item.get("color"):
+        return str(item["color"])
+    tone = str(item.get("tone", "")).strip().lower()
+    if tone == "success":
+        return tokens["callout_success_border"]
+    if tone == "warning":
+        return tokens["callout_warning_border"]
+    if tone == "danger":
+        return tokens["callout_danger_border"]
+    return tokens["badge"]
+
+
+def _render_rich_report_heading(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render a rich report heading block."""
+    level = block.get("level", 2)
+    tag = "h3" if level == 3 else "h2"
+    size = "18px" if tag == "h3" else "20px"
+    return (
+        f'<{tag} style="font-size:{size}; margin:16px 0 8px 0; '
+        f'color:{tokens["text"]};">{_escape_html_value(block.get("text", ""))}</{tag}>'
+    )
+
+
+def _render_rich_report_paragraph(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render a paragraph block."""
+    return (
+        f'<p style="margin:0 0 12px 0; color:{tokens["text"]};">'
+        f"{_rich_report_text_or_html(block)}</p>"
+    )
+
+
+def _render_rich_report_cards(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render metric cards."""
+    cards: list[str] = []
+    for item in block.get("items", []):
+        if not isinstance(item, dict):
+            item = {"label": "", "value": item}
+        value_color = str(item.get("color") or tokens["text"])
+        note = item.get("note")
+        note_html = ""
+        if note is not None:
+            note_html = (
+                f'<div style="color:{tokens["muted"]}; font-size:12px; margin-top:3px;">'
+                f"{_escape_html_value(note)}</div>"
+            )
+        cards.append(
+            f'<div style="background:{tokens["card"]}; border:1px solid {tokens["border"]}; '
+            'border-radius:10px; padding:10px;">'
+            f'<div style="color:{tokens["muted"]}; font-size:12px; font-weight:700;">'
+            f"{_escape_html_value(item.get('label', ''))}</div>"
+            f'<div style="font-size:20px; font-weight:800; color:{value_color};">'
+            f"{_escape_html_value(item.get('value', ''))}</div>"
+            f"{note_html}</div>"
+        )
+    return (
+        '<div style="display:grid; grid-template-columns:repeat(4,minmax(120px,1fr)); '
+        f'gap:10px; margin:12px 0 18px 0;">{"".join(cards)}</div>'
+    )
+
+
+def _coerce_percentage(value: Any, maximum: Any) -> tuple[float, str]:
+    """Return a clamped percentage and display text for progress blocks."""
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        numeric_value = 0.0
+    try:
+        numeric_maximum = float(maximum)
+    except (TypeError, ValueError):
+        numeric_maximum = 100.0
+    if numeric_maximum <= 0:
+        numeric_maximum = 100.0
+
+    percentage = max(0.0, min(100.0, (numeric_value / numeric_maximum) * 100.0))
+    display = f"{int(percentage)}%" if percentage.is_integer() else f"{percentage:.1f}%"
+    return percentage, display
+
+
+def _render_rich_report_progress(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render a horizontal progress bar."""
+    percentage, display = _coerce_percentage(block.get("value", 0), block.get("max", 100))
+    label = _escape_html_value(block.get("label", "Progress"))
+    color = str(block.get("color") or tokens["accent"])
+    note = block.get("note")
+    note_html = ""
+    if note is not None:
+        note_html = (
+            f'<div style="color:{tokens["muted"]}; font-size:12px; margin-top:4px;">'
+            f"{_escape_html_value(note)}</div>"
+        )
+    return (
+        f'<div class="chimerax-mcp-rich-report-progress" style="margin:12px 0 16px 0;">'
+        '<div style="display:flex; justify-content:space-between; gap:12px; '
+        f'color:{tokens["text"]}; font-weight:800; margin-bottom:6px;">'
+        f"<span>{label}</span><span>{display}</span></div>"
+        f'<div style="height:14px; background:{tokens["panel"]}; border:1px solid '
+        f'{tokens["border"]}; border-radius:999px; overflow:hidden;">'
+        f'<div style="height:100%; width:{percentage:.1f}%; background:{color};"></div>'
+        "</div>"
+        f"{note_html}</div>"
+    )
+
+
+def _render_rich_report_columns(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render nested report blocks in flexible columns."""
+    items = block.get("items", [])
+    min_width = _escape_html_value(block.get("min_width", "240px"))
+    gap = _escape_html_value(block.get("gap", "12px"))
+    column_html = []
+    for item in items:
+        if not isinstance(item, dict):
+            item = {"type": "paragraph", "text": item}
+        column_html.append(
+            f'<div style="min-width:{min_width}; flex:1 1 {min_width};">'
+            f"{_render_rich_report_block(item, tokens)}</div>"
+        )
+    return (
+        f'<div class="chimerax-mcp-rich-report-columns" style="display:flex; '
+        f'flex-wrap:wrap; gap:{gap}; margin:12px 0 16px 0;">{"".join(column_html)}</div>'
+    )
+
+
+def _render_rich_report_table(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render a styled table block."""
+    title = _escape_html_value(block.get("title", ""))
+    columns = block.get("columns") or []
+    rows = block.get("rows") or []
+    header_color = str(block.get("header_color") or tokens["table_header"])
+    column_styles = block.get("column_styles") or {}
+    cell_styles = block.get("cell_styles") or []
+
+    header_cells = "".join(
+        f'<th style="background:{header_color}; color:white; text-align:left; padding:8px 10px; '
+        f'border:1px solid {tokens["border"]};{column_styles.get(str(index), "")}">'
+        f"{_escape_html_value(column)}</th>"
+        for index, column in enumerate(columns)
+    )
+
+    body_rows: list[str] = []
+    for row_index, row in enumerate(rows):
+        cells = row if isinstance(row, (list, tuple)) else [row]
+        body_cells: list[str] = []
+        row_cell_styles = cell_styles[row_index] if row_index < len(cell_styles) else []
+        for cell_index, cell in enumerate(cells):
+            cell_html, cell_style = _rich_report_cell_html(cell)
+            extra_style = ""
+            if isinstance(row_cell_styles, (list, tuple)) and cell_index < len(row_cell_styles):
+                extra_style = str(row_cell_styles[cell_index] or "")
+            body_cells.append(
+                f'<td style="padding:8px 10px; border:1px solid {tokens["border"]}; '
+                f'{extra_style}{cell_style}">{cell_html}</td>'
+            )
+        body_rows.append(f"<tr>{''.join(body_cells)}</tr>")
+
+    table_html = ['<div class="chimerax-mcp-rich-report-table" style="margin:14px 0 18px 0;">']
+    if title:
+        table_html.append(
+            f'<h2 style="font-size:20px; margin:0 0 8px 0; color:{tokens["text"]};">{title}</h2>'
+        )
+    table_html.extend(
+        [
+            '<table style="border-collapse:collapse; width:100%; font-size:15px;">',
+            f"<thead><tr>{header_cells}</tr></thead>",
+            f"<tbody>{''.join(body_rows)}</tbody>",
+            "</table>",
+            "</div>",
+        ]
+    )
+    return "".join(table_html)
+
+
+def _render_rich_report_callout(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render a callout block."""
+    bg, border = _tone_color(str(block.get("tone", "note")), tokens)
+    title = _escape_html_value(block.get("title", ""))
+    title_html = f"<b>{title}</b> " if title else ""
+    return (
+        f'<div style="border-left:4px solid {border}; background:{bg}; padding:8px 10px; '
+        f'color:{tokens["text"]}; border-radius:6px; margin:12px 0;">'
+        f"{title_html}{_rich_report_text_or_html(block)}</div>"
+    )
+
+
+def _render_rich_report_badges(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render inline badges."""
+    badges: list[str] = []
+    for item in block.get("items", []):
+        item_dict = item if isinstance(item, dict) else {"label": item}
+        color = _badge_color(item_dict, tokens)
+        badges.append(
+            f'<span style="display:inline-block; background:{color}; color:{tokens["badge_text"]}; '
+            "border-radius:999px; padding:4px 10px; font-weight:700; font-size:12px; "
+            f'margin:0 6px 6px 0;">{_escape_html_value(item_dict.get("label", ""))}</span>'
+        )
+    return f'<div style="margin:8px 0 12px 0;">{"".join(badges)}</div>'
+
+
+def _render_rich_report_legend(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render a compact color legend."""
+    items: list[str] = []
+    for item in block.get("items", []):
+        if not isinstance(item, dict):
+            item = {"label": item, "color": tokens["accent"]}
+        color = str(item.get("color") or tokens["accent"])
+        description = item.get("description")
+        description_html = ""
+        if description is not None:
+            description_html = (
+                f' <span style="color:{tokens["muted"]};">{_escape_html_value(description)}</span>'
+            )
+        items.append(
+            '<div style="display:flex; align-items:center; gap:8px; margin:4px 12px 4px 0;">'
+            f'<span style="display:inline-block; width:14px; height:14px; border-radius:3px; '
+            f'background:{color}; border:1px solid {tokens["border"]};"></span>'
+            f"<span><b>{_escape_html_value(item.get('label', ''))}</b>{description_html}</span>"
+            "</div>"
+        )
+    return (
+        f'<div style="display:flex; flex-wrap:wrap; color:{tokens["text"]}; '
+        f'margin:10px 0 14px 0;">{"".join(items)}</div>'
+    )
+
+
+def _render_rich_report_block(block: dict[str, Any], tokens: dict[str, str]) -> str:
+    """Render one rich report block."""
+    block_type = str(block.get("type", "")).strip().lower()
+    if block_type == "heading":
+        return _render_rich_report_heading(block, tokens)
+    if block_type == "paragraph":
+        return _render_rich_report_paragraph(block, tokens)
+    if block_type == "cards":
+        return _render_rich_report_cards(block, tokens)
+    if block_type == "progress":
+        return _render_rich_report_progress(block, tokens)
+    if block_type == "columns":
+        return _render_rich_report_columns(block, tokens)
+    if block_type == "table":
+        return _render_rich_report_table(block, tokens)
+    if block_type == "callout":
+        return _render_rich_report_callout(block, tokens)
+    if block_type == "badges":
+        return _render_rich_report_badges(block, tokens)
+    if block_type == "legend":
+        return _render_rich_report_legend(block, tokens)
+    if block_type == "html":
+        return str(block.get("html", ""))
+    return ""
+
+
+def _build_rich_report_html(
+    title: str,
+    subtitle: str | None = None,
+    theme: str = "auto",
+    accent_color: str | None = None,
+    blocks: list[dict[str, Any]] | None = None,
+) -> str:
+    """Build themed rich report HTML for the ChimeraX Log."""
+    tokens = _rich_report_theme(theme, accent_color)
+    html_parts = [
+        tokens["style_block"],
+        f'<div class="chimerax-mcp-rich-report{tokens["class_suffix"]}" '
+        f'style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif; '
+        f"{tokens['color_scheme']}color:{tokens['text']}; background:{tokens['bg']}; "
+        f"border:1px solid {tokens['border']}; border-radius:12px; padding:16px 18px; "
+        'max-width:1040px; line-height:1.38; box-shadow:0 2px 10px rgba(0,0,0,.20);">',
+        '<div style="display:flex; align-items:flex-start; justify-content:space-between; '
+        f"gap:16px; border-bottom:3px solid {tokens['accent']}; padding-bottom:10px; "
+        'margin-bottom:14px;">',
+        "<div>",
+        f'<div style="font-size:12px; letter-spacing:.08em; text-transform:uppercase; '
+        f'color:{tokens["muted"]}; font-weight:700;">ChimeraX analysis note</div>',
+        f'<h1 style="font-size:28px; color:{tokens["accent"]}; margin:2px 0 2px 0;">'
+        f"{_escape_html_value(title.strip())}</h1>",
+    ]
+    if subtitle:
+        html_parts.append(
+            f'<div style="font-size:14px; color:{tokens["text"]};">'
+            f"{_escape_html_value(subtitle)}</div>"
+        )
+    html_parts.extend(["</div>", "</div>"])
+    for block in blocks or []:
+        html_parts.append(_render_rich_report_block(block, tokens))
+    html_parts.append("</div>")
+    return "".join(html_parts)
+
+
 @mcp.tool()
 def chimerax_run(command: str) -> dict[str, Any]:
     """Execute a ChimeraX command.
@@ -272,6 +937,113 @@ def chimerax_run(command: str) -> dict[str, Any]:
         Command output or error message.
     """
     return _run_command(command)
+
+
+@mcp.tool()
+def chimerax_rich_log(
+    html: str,
+    level: str = "info",
+    title: str | None = None,
+    save_html_path: str | None = None,
+    overwrite: bool = False,
+) -> dict[str, Any]:
+    """Write trusted HTML to the ChimeraX Log.
+
+    SECURITY NOTE: This tool passes caller-provided HTML through to ChimeraX
+    with ``is_html=True``. Only use with trusted input.
+
+    Args:
+        html: HTML content to write to the ChimeraX Log.
+        level: Log level - ``info``, ``warning``, or ``error`` (default: info).
+        title: Optional escaped heading displayed above the HTML.
+        save_html_path: Optional local path where the generated HTML should be saved.
+        overwrite: If True, allow replacing an existing ``save_html_path``.
+
+    Returns:
+        Status of the rich log write operation.
+    """
+    if not html or not html.strip():
+        return {"status": "error", "message": "html must not be empty"}
+
+    normalized_level = _validate_log_level(level)
+    if normalized_level is None:
+        return {
+            "status": "error",
+            "message": f"level must be one of: {', '.join(sorted(VALID_LOG_LEVELS))}",
+        }
+
+    rich_html = _build_rich_log_html(html=html, title=title)
+    return _write_rich_log(
+        html=rich_html,
+        level=normalized_level,
+        save_html_path=save_html_path,
+        overwrite=overwrite,
+    )
+
+
+@mcp.tool()
+def chimerax_rich_report(
+    title: str,
+    subtitle: str | None = None,
+    theme: str = "auto",
+    accent_color: str | None = None,
+    blocks: list[dict[str, Any]] | None = None,
+    level: str = "info",
+    save_html_path: str | None = None,
+    overwrite: bool = False,
+) -> dict[str, Any]:
+    """Compose a themed rich HTML report for the ChimeraX Log.
+
+    Plain text fields are escaped. Raw ``html`` block fields are trusted local
+    input and are inserted as-is.
+
+    Args:
+        title: Report title.
+        subtitle: Optional subtitle below the title.
+        theme: Visual theme - ``auto``, ``dark``, or ``light`` (default: auto).
+        accent_color: Optional primary accent color.
+        blocks: Ordered rich content blocks.
+        level: Log level - ``info``, ``warning``, or ``error`` (default: info).
+        save_html_path: Optional local path where the generated HTML should be saved.
+        overwrite: If True, allow replacing an existing ``save_html_path``.
+
+    Returns:
+        Status of the rich report write operation.
+    """
+    if not title or not title.strip():
+        return {"status": "error", "message": "title must not be empty"}
+
+    normalized_level = _validate_log_level(level)
+    if normalized_level is None:
+        return {
+            "status": "error",
+            "message": f"level must be one of: {', '.join(sorted(VALID_LOG_LEVELS))}",
+        }
+
+    normalized_theme = theme.strip().lower()
+    if normalized_theme not in VALID_RICH_REPORT_THEMES:
+        return {
+            "status": "error",
+            "message": f"theme must be one of: {', '.join(sorted(VALID_RICH_REPORT_THEMES))}",
+        }
+
+    validation_error = _validate_rich_report_blocks(blocks)
+    if validation_error is not None:
+        return {"status": "error", "message": validation_error}
+
+    report_html = _build_rich_report_html(
+        title=title,
+        subtitle=subtitle,
+        theme=normalized_theme,
+        accent_color=accent_color,
+        blocks=blocks,
+    )
+    return _write_rich_log(
+        html=report_html,
+        level=normalized_level,
+        save_html_path=save_html_path,
+        overwrite=overwrite,
+    )
 
 
 @mcp.tool()
@@ -697,9 +1469,7 @@ def chimerax_list_screenshots() -> dict[str, Any]:
                     "path": str(f),
                     "name": f.name,
                     "size_bytes": stat.st_size,
-                    "modified": datetime.datetime.fromtimestamp(
-                        stat.st_mtime, tz=datetime.timezone.utc
-                    )
+                    "modified": datetime.datetime.fromtimestamp(stat.st_mtime, tz=datetime.UTC)
                     .isoformat()
                     .replace("+00:00", "Z"),
                 }

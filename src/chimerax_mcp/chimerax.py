@@ -48,9 +48,9 @@ class ChimeraXClient:
     def is_running(self) -> bool:
         """Check if ChimeraX REST server is running."""
         try:
-            response = self._client.get(f"{self.base_url}/run?command=version")
+            response = self._client.get(f"{self.base_url}/cmdline.html")
             return response.status_code == 200
-        except httpx.ConnectError:
+        except httpx.HTTPError:
             return False
 
     def run_command(self, command: str) -> dict[str, Any]:

@@ -1,5 +1,6 @@
 """Tests for MCP server tools."""
 
+import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -12,9 +13,16 @@ from chimerax_mcp.server import (
     MIN_IMAGE_DIMENSION,
     VALID_AXES,
     VALID_IMAGE_FORMATS,
+    VALID_LOG_LEVELS,
+    _build_rich_log_html,
+    _build_rich_log_script,
+    _build_rich_report_html,
     _build_tool_screenshot_script,
     chimerax_reset,
+    chimerax_rich_log,
+    chimerax_rich_report,
     chimerax_screenshot,
+    chimerax_start,
     chimerax_status,
     chimerax_tool_screenshot,
     chimerax_turn,
@@ -177,6 +185,64 @@ class TestStatusTool:
         result = chimerax_status.fn()
         assert result["status"] == "ok"
         assert result["running"] is False
+
+    def test_status_running_omits_version_by_default(self):
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+
+        def fail_get_version():
+            raise AssertionError("status should not fetch version by default")
+
+        mock_client.get_version = fail_get_version  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_status.fn()
+
+        assert result == {"status": "ok", "running": True}
+
+    def test_status_running_fetches_version_when_requested(self):
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.get_version = lambda: "UCSF ChimeraX version 1.11.1"  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_status.fn(include_version=True)
+
+        assert result == {
+            "status": "ok",
+            "running": True,
+            "version": "UCSF ChimeraX version 1.11.1",
+        }
+
+
+class TestStartTool:
+    def test_start_already_running_omits_version_by_default(self):
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+
+        def fail_get_version():
+            raise AssertionError("start should not fetch version by default")
+
+        mock_client.get_version = fail_get_version  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_start.fn()
+
+        assert result == {"status": "already_running", "message": "ChimeraX is already running"}
+
+    def test_start_already_running_fetches_version_when_requested(self):
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.get_version = lambda: "UCSF ChimeraX version 1.11.1"  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_start.fn(include_version=True)
+
+        assert result == {
+            "status": "already_running",
+            "message": "ChimeraX is already running",
+            "version": "UCSF ChimeraX version 1.11.1",
+        }
 
 
 class TestViewTool:
@@ -872,3 +938,516 @@ class TestConstants:
 
     def test_valid_axes(self):
         assert {"x", "y", "z"} == VALID_AXES
+
+
+class TestRichLog:
+    """Tests for chimerax_rich_log and helper script generation."""
+
+    def test_valid_log_levels(self):
+        assert {"error", "info", "warning"} == VALID_LOG_LEVELS
+
+    def test_rich_log_rejects_empty_html(self):
+        result = chimerax_rich_log.fn(html="   ")
+        assert result["status"] == "error"
+        assert "html" in result["message"].lower()
+        assert "empty" in result["message"].lower()
+
+    def test_rich_log_rejects_invalid_level(self):
+        result = chimerax_rich_log.fn(html="<b>Hello</b>", level="debug")
+        assert result["status"] == "error"
+        assert "level" in result["message"].lower()
+        assert "error, info, warning" in result["message"]
+
+    def test_rich_log_not_running(self):
+        mock_client = ChimeraXClient(port=59998)
+        mock_client.is_running = lambda: False  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(html="<b>Hello</b>")
+
+        assert result["status"] == "error"
+        assert "not running" in result["message"].lower()
+
+    def test_build_rich_log_html_adds_optional_title(self):
+        html = _build_rich_log_html("<p>Body</p>", title="Analysis <One>")
+        assert "chimerax-mcp-rich-log" in html
+        assert "Analysis &lt;One&gt;" in html
+        assert "<p>Body</p>" in html
+
+    def test_build_rich_log_html_without_title_keeps_html(self):
+        assert _build_rich_log_html("<em>Body</em>") == "<em>Body</em>"
+
+    def test_build_rich_log_script_uses_html_logger_and_thread_safe(self):
+        script = _build_rich_log_script("<p>Hello</p>", "warning", marker_id="test-marker")
+        assert "html_content = '<p>Hello</p>'" in script
+        assert "logger_method = session.logger.warning" in script
+        assert "is_html=True" in script
+        assert "session.ui.thread_safe(write_log)" in script
+        assert "write_log()" in script
+        assert "__CHIMERAX_MCP_RICH_LOG_OK__" not in script
+        assert "__CHIMERAX_MCP_RICH_LOG_ERROR__" not in script
+
+    def test_build_rich_log_script_does_not_log_private_success_marker(self):
+        script = _build_rich_log_script("<p>Hello</p>", "info", marker_id="test-marker")
+
+        assert "session.logger.info('__CHIMERAX_MCP_RICH_LOG_OK__:" not in script
+        assert "print('__CHIMERAX_MCP_RICH_LOG_OK__:" not in script
+
+    def test_rich_log_returns_ok_without_private_marker_when_runscript_succeeds(self):
+        mock_client = ChimeraXClient(port=59998)
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(html="<p>Hi</p>")
+
+        assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
+
+    def test_rich_log_saves_generated_html(self, tmp_path: Path):
+        mock_client = ChimeraXClient(port=59998)
+        html_path = tmp_path.joinpath("reports", "summary.html")
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(
+                html="<p>Saved body</p>",
+                title="Saved <Report>",
+                save_html_path=str(html_path),
+            )
+
+        assert result["status"] == "ok"
+        assert result["html_path"] == str(html_path)
+        saved_html = html_path.read_text()
+        assert "Saved &lt;Report&gt;" in saved_html
+        assert "<p>Saved body</p>" in saved_html
+
+    def test_rich_log_rejects_existing_html_save_path_without_overwrite(self, tmp_path: Path):
+        mock_client = ChimeraXClient(port=59998)
+        commands_run: list[str] = []
+        html_path = tmp_path.joinpath("existing.html")
+        html_path.write_text("old")
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            commands_run.append(cmd)
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(
+                html="<p>New body</p>",
+                save_html_path=str(html_path),
+            )
+
+        assert result["status"] == "error"
+        assert "already exists" in result["message"]
+        assert html_path.read_text() == "old"
+        assert commands_run == []
+
+    def test_rich_log_sends_runscript_when_running(self):
+        mock_client = ChimeraXClient(port=59998)
+        commands_run: list[str] = []
+
+        def fake_run_command(cmd: str):
+            commands_run.append(cmd)
+            Path(cmd.removeprefix("runscript ").strip('"')).read_text()
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(
+                html="<strong>Result</strong>", level="info", title="Summary"
+            )
+
+        assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
+        assert len(commands_run) == 1
+        assert commands_run[0].startswith("runscript ")
+
+    def test_rich_log_returns_script_error(self):
+        mock_client = ChimeraXClient(port=59998)
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {},
+                "error": {"type": "RuntimeError", "message": "boom"},
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(html="<p>Hi</p>")
+
+        assert result == {"status": "error", "error_type": "RuntimeError", "message": "boom"}
+
+    def test_rich_log_ignores_error_text_without_sentinel(self):
+        mock_client = ChimeraXClient(port=59998)
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {
+                    "info": ["<p>Caller HTML mentions ERROR: but is not a marker</p>"],
+                },
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(html="<p>ERROR: caller text</p>")
+
+        assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
+
+    def test_rich_log_ignores_combined_log_output_when_runscript_succeeds(self):
+        mock_client = ChimeraXClient(port=59998)
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {"info": ["<p>Rendered HTML and command echo</p>"]},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(html="<p>combined log output</p>")
+
+        assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
+
+    def test_rich_log_ignores_static_sentinel_text_when_runscript_succeeds(self):
+        mock_client = ChimeraXClient(port=59998)
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {
+                    "info": [
+                        "__CHIMERAX_MCP_RICH_LOG_ERROR__:not-the-nonce: caller text",
+                        "__CHIMERAX_MCP_RICH_LOG_OK__:not-the-nonce",
+                    ]
+                },
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(
+                html="<p>__CHIMERAX_MCP_RICH_LOG_ERROR__:not-the-nonce: caller text</p>"
+            )
+
+        assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
+
+    def test_rich_log_quotes_temp_script_path_with_spaces(self, tmp_path: Path):
+        mock_client = ChimeraXClient(port=59998)
+        commands_run: list[str] = []
+        script_path = tmp_path.joinpath("rich log script.py")
+        fd = os.open(script_path, os.O_CREAT | os.O_RDWR)
+
+        def fake_run_command(cmd: str):
+            commands_run.append(cmd)
+            Path(cmd.removeprefix("runscript ").strip('"')).read_text()
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with (
+            patch("chimerax_mcp.server.get_client", return_value=mock_client),
+            patch("chimerax_mcp.server.tempfile.mkstemp", return_value=(fd, str(script_path))),
+        ):
+            result = chimerax_rich_log.fn(html="<p>Hi</p>")
+
+        assert result["status"] == "ok"
+        assert commands_run == [f'runscript "{script_path}"']
+
+    def test_rich_log_returns_chimerax_level_error_before_marker_parsing(self):
+        mock_client = ChimeraXClient(port=59998)
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {"info": ["__CHIMERAX_MCP_RICH_LOG_OK__:not-the-nonce"]},
+                "error": {"type": "UserError", "message": "runscript failed"},
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(html="<p>Hi</p>")
+
+        assert result == {
+            "status": "error",
+            "error_type": "UserError",
+            "message": "runscript failed",
+        }
+
+
+class TestRichReport:
+    """Tests for rich report block composer generation and logging."""
+
+    def test_build_rich_report_html_renders_dark_block_composer(self):
+        html = _build_rich_report_html(
+            title="Carbonic Anhydrase II",
+            subtitle="PDB 1CA2 · active-site snapshot",
+            theme="dark",
+            accent_color="#58a6ff",
+            blocks=[
+                {
+                    "type": "cards",
+                    "items": [
+                        {"label": "Model", "value": "#1 · 1CA2"},
+                        {"label": "Cofactor", "value": "Zn²⁺", "color": "#ffd33d"},
+                    ],
+                },
+                {"type": "heading", "text": "Functional feature map"},
+                {
+                    "type": "table",
+                    "columns": ["Feature", "Residues", "View"],
+                    "rows": [
+                        [
+                            "Active site",
+                            "His64",
+                            {
+                                "text": "red",
+                                "style": "background:#da3633;color:white;font-weight:800;",
+                            },
+                        ],
+                    ],
+                    "header_color": "#1f6feb",
+                },
+                {"type": "callout", "tone": "warning", "title": "Note", "text": "Draft report"},
+            ],
+        )
+
+        assert "chimerax-mcp-rich-report" in html
+        assert "background:#0d1117" in html
+        assert "Carbonic Anhydrase II" in html
+        assert "PDB 1CA2 · active-site snapshot" in html
+        assert "#1 · 1CA2" in html
+        assert "Zn²⁺" in html
+        assert "Functional feature map" in html
+        assert "background:#da3633;color:white;font-weight:800;" in html
+        assert "Draft report" in html
+
+    def test_build_rich_report_html_renders_light_theme(self):
+        html = _build_rich_report_html(
+            title="Light report",
+            theme="light",
+            blocks=[{"type": "paragraph", "text": "Readable on white backgrounds"}],
+        )
+
+        assert "background:#ffffff" in html
+        assert "color:#111827" in html
+        assert "Readable on white backgrounds" in html
+
+    def test_build_rich_report_html_auto_uses_css_color_scheme(self):
+        html = _build_rich_report_html(
+            title="Auto report",
+            theme="auto",
+            blocks=[{"type": "paragraph", "text": "Follows ChimeraX appearance"}],
+        )
+
+        assert "color-scheme:light dark" in html
+        assert "@media (prefers-color-scheme: light)" in html
+        assert "--cxmcp-bg:#0d1117" in html
+        assert "--cxmcp-bg:#ffffff" in html
+        assert "--cxmcp-text:#111827" in html
+        assert "Follows ChimeraX appearance" in html
+
+    def test_build_rich_report_html_escapes_text_but_preserves_raw_html(self):
+        html = _build_rich_report_html(
+            title="Unsafe <title>",
+            theme="dark",
+            blocks=[
+                {"type": "paragraph", "text": "Text <script>alert(1)</script>"},
+                {"type": "html", "html": "<p><b>Trusted raw HTML</b></p>"},
+            ],
+        )
+
+        assert "Unsafe &lt;title&gt;" in html
+        assert "Text &lt;script&gt;alert(1)&lt;/script&gt;" in html
+        assert "<p><b>Trusted raw HTML</b></p>" in html
+        assert "Text <script>" not in html
+
+    def test_build_rich_report_html_renders_badges_and_legend(self):
+        html = _build_rich_report_html(
+            title="Legend report",
+            blocks=[
+                {
+                    "type": "badges",
+                    "items": ["interactive", {"label": "view colored", "tone": "success"}],
+                },
+                {
+                    "type": "legend",
+                    "items": [
+                        {"label": "Active site", "color": "#da3633", "description": "His64"},
+                        {
+                            "label": "Zn²⁺ ligands",
+                            "color": "#fb8500",
+                            "description": "His94/96/119",
+                        },
+                    ],
+                },
+            ],
+        )
+
+        assert "interactive" in html
+        assert "view colored" in html
+        assert "Active site" in html
+        assert "#da3633" in html
+        assert "His94/96/119" in html
+
+    def test_build_rich_report_html_renders_progress_and_columns(self):
+        html = _build_rich_report_html(
+            title="Layout report",
+            blocks=[
+                {
+                    "type": "progress",
+                    "label": "Model confidence",
+                    "value": 82,
+                    "max": 100,
+                    "color": "#238636",
+                },
+                {
+                    "type": "columns",
+                    "items": [
+                        {"type": "paragraph", "text": "Left column"},
+                        {
+                            "type": "table",
+                            "columns": ["Metric", "Value"],
+                            "rows": [["Atoms", "327"]],
+                        },
+                    ],
+                },
+            ],
+        )
+
+        assert "Model confidence" in html
+        assert "82%" in html
+        assert "width:82.0%" in html
+        assert "#238636" in html
+        assert "Left column" in html
+        assert "Atoms" in html
+
+    def test_rich_report_rejects_empty_title(self):
+        result = chimerax_rich_report.fn(title="  ")
+        assert result["status"] == "error"
+        assert "title" in result["message"].lower()
+        assert "empty" in result["message"].lower()
+
+    def test_rich_report_rejects_invalid_level(self):
+        result = chimerax_rich_report.fn(title="Report", level="debug")
+        assert result["status"] == "error"
+        assert "level" in result["message"].lower()
+
+    def test_rich_report_rejects_invalid_theme(self):
+        result = chimerax_rich_report.fn(title="Report", theme="sepia")
+        assert result["status"] == "error"
+        assert "theme" in result["message"].lower()
+
+    def test_rich_report_rejects_unknown_block_type(self):
+        result = chimerax_rich_report.fn(title="Report", blocks=[{"type": "timeline"}])
+        assert result["status"] == "error"
+        assert "blocks[0].type" in result["message"]
+
+    def test_rich_report_rejects_malformed_table_columns_and_rows(self):
+        result = chimerax_rich_report.fn(title="Report", blocks=[{"type": "table", "columns": 3}])
+        assert result["status"] == "error"
+        assert "blocks[0].columns" in result["message"]
+
+        result = chimerax_rich_report.fn(title="Report", blocks=[{"type": "table", "rows": 3}])
+        assert result["status"] == "error"
+        assert "blocks[0].rows" in result["message"]
+
+        result = chimerax_rich_report.fn(
+            title="Report", blocks=[{"type": "columns", "items": "not-a-list"}]
+        )
+        assert result["status"] == "error"
+        assert "blocks[0].items" in result["message"]
+
+    def test_rich_report_builds_html_and_writes_it(self):
+        captured: dict[str, str] = {}
+
+        def fake_write_rich_log(
+            html: str,
+            level: str,
+            save_html_path: str | None = None,
+            overwrite: bool = False,
+        ):
+            captured["html"] = html
+            captured["level"] = level
+            captured["save_html_path"] = save_html_path or ""
+            captured["overwrite"] = str(overwrite)
+            return {"status": "ok", "level": level, "message": "Rich log written"}
+
+        with patch("chimerax_mcp.server._write_rich_log", side_effect=fake_write_rich_log):
+            result = chimerax_rich_report.fn(
+                title="Analysis Summary",
+                subtitle="Composer output",
+                theme="dark",
+                save_html_path="/tmp/report.html",
+                overwrite=True,
+                blocks=[
+                    {"type": "cards", "items": [{"label": "Models", "value": 1}]},
+                    {"type": "paragraph", "text": "Complete"},
+                ],
+            )
+
+        assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
+        assert captured["level"] == "info"
+        assert "Analysis Summary" in captured["html"]
+        assert "Composer output" in captured["html"]
+        assert "Models" in captured["html"]
+        assert "Complete" in captured["html"]
+        assert captured["save_html_path"] == "/tmp/report.html"
+        assert captured["overwrite"] == "True"

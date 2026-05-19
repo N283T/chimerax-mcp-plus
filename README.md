@@ -7,6 +7,7 @@ MCP server for controlling UCSF ChimeraX molecular visualization.
 - **ChimeraX Control**: Start, detect, and control ChimeraX via REST API
 - **Command Execution**: Run any ChimeraX command
 - **Screenshot Capture**: Take screenshots of the 3D view and tool windows
+- **Rich Log Output**: Write trusted HTML and generated analysis reports to the ChimeraX Log
 - **View Management**: Fit, rotate, and reset the view
 - **Session Management**: Save and load ChimeraX sessions
 
@@ -59,9 +60,9 @@ By default, the server auto-detects the latest installed ChimeraX. To use a spec
 | Tool | Description |
 |------|-------------|
 | `chimerax_detect` | Detect ChimeraX installation |
-| `chimerax_start` | Start ChimeraX with REST API enabled (supports `background` mode) |
+| `chimerax_start` | Start ChimeraX with REST API enabled (supports `background` and optional `include_version` mode) |
 | `chimerax_stop` | Stop the ChimeraX process |
-| `chimerax_status` | Check if ChimeraX is running |
+| `chimerax_status` | Check if ChimeraX is running without logging `version` unless `include_version=true` |
 | `chimerax_run` | Execute any ChimeraX command |
 | `chimerax_models` | List open models |
 
@@ -73,6 +74,15 @@ By default, the server auto-detects the latest installed ChimeraX. To use a spec
 | `chimerax_tool_screenshot` | Capture screenshot of a tool window |
 | `chimerax_list_screenshots` | List all saved screenshots |
 | `chimerax_cleanup_screenshots` | Delete old screenshots (e.g., `older_than_days=7`) |
+
+### Rich Log Output
+
+| Tool | Description |
+|------|-------------|
+| `chimerax_rich_log` | Write trusted caller-provided HTML to the ChimeraX Log, optionally saving the generated HTML |
+| `chimerax_rich_report` | Compose a themed rich HTML report from flexible blocks such as cards, tables, progress bars, columns, badges, callouts, legends, and raw HTML |
+
+`chimerax_rich_log` passes HTML through to ChimeraX with `is_html=True`; only use it with trusted input. `chimerax_rich_report` escapes plain text fields but allows raw HTML blocks for trusted local reports. Use `theme="auto"` to let generated reports follow the ChimeraX/system light or dark appearance where Qt WebEngine supports `prefers-color-scheme`; explicit `theme="light"` and `theme="dark"` remain available. Pass `save_html_path` to either rich-log tool to save the exact generated HTML locally; existing files require `overwrite=true`.
 
 ### View Management
 
@@ -128,7 +138,78 @@ This MCP server communicates with ChimeraX via its REST API:
 
 1. ChimeraX is started with `remotecontrol rest start port 63269 json true log true`
 2. Commands are sent via HTTP GET to `http://127.0.0.1:63269/run?command=...`
-3. Results are parsed and returned to the AI client
+3. Running-state checks use `http://127.0.0.1:63269/cmdline.html` so routine MCP calls do not spam the ChimeraX Log with `version`
+4. Results are parsed and returned to the AI client
+
+## Rich Log Examples
+
+Low-level trusted HTML:
+
+```json
+{
+  "html": "<p><b>RMSD:</b> 1.42 Å</p>",
+  "title": "Alignment summary"
+}
+```
+
+Themed block-composer report:
+
+```json
+{
+  "title": "Carbonic Anhydrase II active-site snapshot",
+  "subtitle": "PDB 1CA2 · Zn²⁺ metalloenzyme",
+  "theme": "auto",
+  "accent_color": "#58a6ff",
+  "save_html_path": "/tmp/ca2-report.html",
+  "blocks": [
+    {
+      "type": "cards",
+      "items": [
+        {"label": "Model", "value": "#1 · 1CA2"},
+        {"label": "Resolution", "value": "2.0 Å"},
+        {"label": "Cofactor", "value": "Zn²⁺", "color": "#ffd33d"}
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Functional feature map",
+      "columns": ["Feature", "Residues", "View"],
+      "rows": [
+        [
+          "Active-site shuttle",
+          "His64",
+          {"text": "red", "style": "background:#da3633;color:white;font-weight:800;"}
+        ],
+        [
+          "Zn²⁺ ligands",
+          "His94, His96, His119",
+          {"text": "orange", "style": "background:#fb8500;color:white;font-weight:800;"}
+        ]
+      ]
+    },
+    {
+      "type": "progress",
+      "label": "Active-site completeness",
+      "value": 4,
+      "max": 4,
+      "color": "#238636"
+    },
+    {
+      "type": "columns",
+      "items": [
+        {"type": "paragraph", "text": "Left column narrative."},
+        {"type": "paragraph", "text": "Right column notes."}
+      ]
+    },
+    {
+      "type": "callout",
+      "tone": "warning",
+      "title": "Note",
+      "text": "Raw HTML blocks are allowed for trusted local reports."
+    }
+  ]
+}
+```
 
 ## Requirements
 
