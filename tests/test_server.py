@@ -1127,23 +1127,15 @@ class TestRichReport:
         assert result["status"] == "error"
         assert "level" in result["message"].lower()
 
-    def test_rich_report_sends_runscript_when_running(self):
-        mock_client = ChimeraXClient(port=59998)
-        commands_run: list[str] = []
+    def test_rich_report_builds_html_and_writes_it(self):
+        captured: dict[str, str] = {}
 
-        def fake_run_command(cmd: str):
-            commands_run.append(cmd)
-            return {
-                "python_values": [],
-                "json_values": [],
-                "log_messages": {"info": ["__CHIMERAX_MCP_RICH_LOG_OK__"]},
-                "error": None,
-            }
+        def fake_write_rich_log(html: str, level: str):
+            captured["html"] = html
+            captured["level"] = level
+            return {"status": "ok", "level": level, "message": "Rich log written"}
 
-        mock_client.is_running = lambda: True  # type: ignore[assignment]
-        mock_client.run_command = fake_run_command  # type: ignore[assignment]
-
-        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+        with patch("chimerax_mcp.server._write_rich_log", side_effect=fake_write_rich_log):
             result = chimerax_rich_report.fn(
                 title="Analysis Summary",
                 summary="Complete",
@@ -1151,5 +1143,8 @@ class TestRichReport:
             )
 
         assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
-        assert len(commands_run) == 1
-        assert commands_run[0].startswith("runscript ")
+        assert captured["level"] == "info"
+        assert "Analysis Summary" in captured["html"]
+        assert "Complete" in captured["html"]
+        assert "Models" in captured["html"]
+        assert "1" in captured["html"]
