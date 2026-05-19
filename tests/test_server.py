@@ -1,5 +1,6 @@
 """Tests for MCP server tools."""
 
+import os
 from pathlib import Path
 from unittest.mock import patch
 
@@ -924,7 +925,7 @@ class TestRichLog:
         assert "is_html=True" in script
         assert "session.ui.thread_safe(write_log)" in script
         assert "write_log()" in script
-        assert "OK: rich log written" in script
+        assert "__CHIMERAX_MCP_RICH_LOG_OK__" in script
 
     def test_rich_log_sends_runscript_when_running(self):
         mock_client = ChimeraXClient(port=59998)
@@ -935,7 +936,7 @@ class TestRichLog:
             return {
                 "python_values": [],
                 "json_values": [],
-                "log_messages": {"info": ["OK: rich log written"]},
+                "log_messages": {"info": ["__CHIMERAX_MCP_RICH_LOG_OK__"]},
                 "error": None,
             }
 
@@ -958,7 +959,7 @@ class TestRichLog:
             return {
                 "python_values": [],
                 "json_values": [],
-                "log_messages": {"info": ["ERROR: boom"]},
+                "log_messages": {"info": ["__CHIMERAX_MCP_RICH_LOG_ERROR__: boom"]},
                 "error": None,
             }
 
@@ -969,3 +970,95 @@ class TestRichLog:
             result = chimerax_rich_log.fn(html="<p>Hi</p>")
 
         assert result == {"status": "error", "message": "boom"}
+
+    def test_rich_log_ignores_error_text_without_sentinel(self):
+        mock_client = ChimeraXClient(port=59998)
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {
+                    "info": ["<p>Caller HTML mentions ERROR: but is not a marker</p>"],
+                    "note": ["__CHIMERAX_MCP_RICH_LOG_OK__"],
+                },
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(html="<p>ERROR: caller text</p>")
+
+        assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
+
+    def test_rich_log_ignores_old_ok_text_without_sentinel(self):
+        mock_client = ChimeraXClient(port=59998)
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {"info": ["OK: rich log written"]},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(html="<p>OK: rich log written</p>")
+
+        assert result["status"] == "error"
+        assert "Unexpected output" in result["message"]
+
+    def test_rich_log_quotes_temp_script_path_with_spaces(self, tmp_path: Path):
+        mock_client = ChimeraXClient(port=59998)
+        commands_run: list[str] = []
+        script_path = tmp_path.joinpath("rich log script.py")
+        fd = os.open(script_path, os.O_CREAT | os.O_RDWR)
+
+        def fake_run_command(cmd: str):
+            commands_run.append(cmd)
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {"info": ["__CHIMERAX_MCP_RICH_LOG_OK__"]},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with (
+            patch("chimerax_mcp.server.get_client", return_value=mock_client),
+            patch("chimerax_mcp.server.tempfile.mkstemp", return_value=(fd, str(script_path))),
+        ):
+            result = chimerax_rich_log.fn(html="<p>Hi</p>")
+
+        assert result["status"] == "ok"
+        assert commands_run == [f'runscript "{script_path}"']
+
+    def test_rich_log_returns_chimerax_level_error_before_marker_parsing(self):
+        mock_client = ChimeraXClient(port=59998)
+
+        def fake_run_command(cmd: str):  # noqa: ARG001
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {"info": ["__CHIMERAX_MCP_RICH_LOG_OK__"]},
+                "error": {"type": "UserError", "message": "runscript failed"},
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_log.fn(html="<p>Hi</p>")
+
+        assert result == {
+            "status": "error",
+            "error_type": "UserError",
+            "message": "runscript failed",
+        }

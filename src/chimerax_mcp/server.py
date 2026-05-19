@@ -31,6 +31,8 @@ MIN_IMAGE_DIMENSION = 1
 # View management constants
 VALID_AXES = {"x", "y", "z"}
 VALID_LOG_LEVELS = {"error", "info", "warning"}
+RICH_LOG_OK_SENTINEL = "__CHIMERAX_MCP_RICH_LOG_OK__"
+RICH_LOG_ERROR_SENTINEL = "__CHIMERAX_MCP_RICH_LOG_ERROR__:"
 _RESET_COMMANDS = [
     "hide pseudobonds",
     "hide atoms",
@@ -277,6 +279,19 @@ def _validate_log_level(level: str) -> str | None:
     return normalized
 
 
+def _quote_chimerax_path(path: Path) -> str:
+    """Quote a path for a ChimeraX command when quoting is needed."""
+    path_str = str(path)
+    if (
+        not any(char.isspace() for char in path_str)
+        and '"' not in path_str
+        and "\\" not in path_str
+    ):
+        return path_str
+    escaped = path_str.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
 def _build_rich_log_html(html: str, title: str | None = None) -> str:
     """Wrap trusted caller-provided HTML with an optional escaped title."""
     if title is None or not title.strip():
@@ -316,11 +331,25 @@ def _build_rich_log_script(html: str, level: str) -> str:
         "        session.ui.thread_safe(write_log)",
         "    else:",
         "        write_log()",
-        "    session.logger.info('OK: rich log written')",
+        f"    session.logger.info({RICH_LOG_OK_SENTINEL!r})",
         "except Exception as exc:",
-        "    session.logger.info('ERROR: ' + str(exc))",
+        f"    session.logger.info({RICH_LOG_ERROR_SENTINEL!r} + ' ' + str(exc))",
     ]
     return "\n".join(lines)
+
+
+def _iter_structured_log_messages(result: dict[str, Any]) -> list[str]:
+    """Return structured ChimeraX log messages without parsing joined output."""
+    messages: list[str] = []
+    log_messages = result.get("log_messages", {})
+    if not isinstance(log_messages, dict):
+        return messages
+    for entries in log_messages.values():
+        if isinstance(entries, list):
+            messages.extend(str(entry) for entry in entries)
+        elif entries is not None:
+            messages.append(str(entries))
+    return messages
 
 
 def _write_rich_log(html: str, level: str) -> dict[str, Any]:
@@ -335,16 +364,29 @@ def _write_rich_log(html: str, level: str) -> dict[str, Any]:
     script_path = Path(script_path_str)
     try:
         script_path.write_text(script)
-        result = client.run_command(f"runscript {script_path}")
-        output = client._extract_output(result)
+        result = client.run_command(f"runscript {_quote_chimerax_path(script_path)}")
 
-        if "ERROR:" in output:
-            msg = output.split("ERROR:", 1)[1].strip()
-            return {"status": "error", "message": msg}
+        if result.get("error") is not None:
+            err = result["error"]
+            if isinstance(err, dict):
+                return {
+                    "status": "error",
+                    "error_type": err.get("type", "Unknown"),
+                    "message": err.get("message", "Unknown error"),
+                }
+            return {"status": "error", "error_type": "Unknown", "message": str(err)}
 
-        if "OK: rich log written" in output:
+        for message in _iter_structured_log_messages(result):
+            if message.startswith(RICH_LOG_ERROR_SENTINEL):
+                return {
+                    "status": "error",
+                    "message": message.removeprefix(RICH_LOG_ERROR_SENTINEL).strip(),
+                }
+
+        if RICH_LOG_OK_SENTINEL in _iter_structured_log_messages(result):
             return {"status": "ok", "level": level, "message": "Rich log written"}
 
+        output = client._extract_output(result)
         return {"status": "error", "message": f"Unexpected output: {output}"}
     except httpx.HTTPError as e:
         return {"status": "error", "message": f"HTTP error: {e}"}
