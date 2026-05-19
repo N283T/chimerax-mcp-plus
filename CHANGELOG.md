@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `chimerax-developer`: Bundle/extension development with echidna
 
 ### Changed
+- Made `chimerax_rich_report(theme="auto")` follow light/dark appearance via CSS color-scheme media queries.
+- Removed private rich-log success sentinels from the visible ChimeraX Log output.
 - Reworked `chimerax_rich_report()` into a themed block composer for dashboard-like ChimeraX Log output.
 - Increased default `wait_seconds` from 10 to 15 for ChimeraX startup
 - Added 3-second initial sleep before polling REST API (ChimeraX needs time to launch)

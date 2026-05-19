@@ -10,7 +10,6 @@ import os
 import subprocess
 import tempfile
 import time
-import uuid
 from pathlib import Path
 from typing import Any
 
@@ -43,8 +42,6 @@ VALID_RICH_REPORT_BLOCK_TYPES = {
     "paragraph",
     "table",
 }
-RICH_LOG_OK_SENTINEL = "__CHIMERAX_MCP_RICH_LOG_OK__"
-RICH_LOG_ERROR_SENTINEL = "__CHIMERAX_MCP_RICH_LOG_ERROR__"
 _RESET_COMMANDS = [
     "hide pseudobonds",
     "hide atoms",
@@ -330,9 +327,7 @@ def _escape_html_value(value: Any) -> str:
 
 def _build_rich_log_script(html: str, level: str, marker_id: str | None = None) -> str:
     """Build a ChimeraX Python script that writes HTML to the Log."""
-    marker_id = marker_id or uuid.uuid4().hex
-    ok_marker = _rich_log_ok_marker(marker_id)
-    error_marker_prefix = _rich_log_error_marker_prefix(marker_id)
+    _ = marker_id
     direct_logger_hint = (
         f"    # logger_method = session.logger.{level}"
         if level in VALID_LOG_LEVELS
@@ -347,41 +342,13 @@ def _build_rich_log_script(html: str, level: str, marker_id: str | None = None) 
         "    logger_method = getattr(session.logger, level)",
         "    logger_method(html_content, is_html=True)",
         "",
-        "try:",
-        "    ui = getattr(session, 'ui', None)",
-        "    if ui is not None and getattr(ui, 'is_gui', False) and hasattr(ui, 'thread_safe'):",
-        "        session.ui.thread_safe(write_log)",
-        "    else:",
-        "        write_log()",
-        f"    session.logger.info({ok_marker!r})",
-        "except Exception as exc:",
-        f"    session.logger.info({error_marker_prefix!r} + str(exc))",
+        "ui = getattr(session, 'ui', None)",
+        "if ui is not None and getattr(ui, 'is_gui', False) and hasattr(ui, 'thread_safe'):",
+        "    session.ui.thread_safe(write_log)",
+        "else:",
+        "    write_log()",
     ]
     return "\n".join(lines)
-
-
-def _rich_log_ok_marker(marker_id: str) -> str:
-    """Return a per-call rich log success marker."""
-    return f"{RICH_LOG_OK_SENTINEL}:{marker_id}"
-
-
-def _rich_log_error_marker_prefix(marker_id: str) -> str:
-    """Return a per-call rich log error marker prefix."""
-    return f"{RICH_LOG_ERROR_SENTINEL}:{marker_id}:"
-
-
-def _iter_structured_log_messages(result: dict[str, Any]) -> list[str]:
-    """Return structured ChimeraX log messages without parsing joined output."""
-    messages: list[str] = []
-    log_messages = result.get("log_messages", {})
-    if not isinstance(log_messages, dict):
-        return messages
-    for entries in log_messages.values():
-        if isinstance(entries, list):
-            messages.extend(str(entry) for entry in entries)
-        elif entries is not None:
-            messages.append(str(entries))
-    return messages
 
 
 def _write_rich_log(html: str, level: str) -> dict[str, Any]:
@@ -390,10 +357,7 @@ def _write_rich_log(html: str, level: str) -> dict[str, Any]:
     if not client.is_running():
         return {"status": "error", "message": "ChimeraX is not running"}
 
-    marker_id = uuid.uuid4().hex
-    ok_marker = _rich_log_ok_marker(marker_id)
-    error_marker_prefix = _rich_log_error_marker_prefix(marker_id)
-    script = _build_rich_log_script(html=html, level=level, marker_id=marker_id)
+    script = _build_rich_log_script(html=html, level=level)
     fd, script_path_str = tempfile.mkstemp(suffix=".py", prefix="chimerax_rich_log_")
     os.close(fd)
     script_path = Path(script_path_str)
@@ -411,19 +375,7 @@ def _write_rich_log(html: str, level: str) -> dict[str, Any]:
                 }
             return {"status": "error", "error_type": "Unknown", "message": str(err)}
 
-        for message in _iter_structured_log_messages(result):
-            for line in message.splitlines():
-                stripped = line.strip()
-                if stripped.startswith(error_marker_prefix):
-                    return {
-                        "status": "error",
-                        "message": stripped.removeprefix(error_marker_prefix).strip(),
-                    }
-                if stripped == ok_marker:
-                    return {"status": "ok", "level": level, "message": "Rich log written"}
-
-        output = client._extract_output(result)
-        return {"status": "error", "message": f"Unexpected output: {output}"}
+        return {"status": "ok", "level": level, "message": "Rich log written"}
     except httpx.HTTPError as e:
         return {"status": "error", "message": f"HTTP error: {e}"}
     finally:
@@ -434,9 +386,83 @@ def _write_rich_log(html: str, level: str) -> dict[str, Any]:
 def _rich_report_theme(theme: str, accent_color: str | None = None) -> dict[str, str]:
     """Return inline color tokens for rich report rendering."""
     normalized = theme.strip().lower()
+    if normalized == "auto":
+        light_accent = accent_color or "#0673c8"
+        dark_accent = accent_color or "#58a6ff"
+        return {
+            "style_block": (
+                "<style>"
+                ".chimerax-mcp-rich-report.cxmcp-auto-theme{"
+                f"--cxmcp-accent:{dark_accent};"
+                "--cxmcp-bg:#0d1117;"
+                "--cxmcp-text:#e6edf3;"
+                "--cxmcp-muted:#8b949e;"
+                "--cxmcp-panel:#161b22;"
+                "--cxmcp-border:#30363d;"
+                "--cxmcp-card:#161b22;"
+                "--cxmcp-table-header:#1f6feb;"
+                "--cxmcp-badge:#1f6feb;"
+                "--cxmcp-badge-text:#ffffff;"
+                "--cxmcp-callout-note-bg:#10233f;"
+                "--cxmcp-callout-note-border:#58a6ff;"
+                "--cxmcp-callout-success-bg:#0f2a1a;"
+                "--cxmcp-callout-success-border:#238636;"
+                "--cxmcp-callout-warning-bg:#2d2302;"
+                "--cxmcp-callout-warning-border:#d29922;"
+                "--cxmcp-callout-danger-bg:#3d1117;"
+                "--cxmcp-callout-danger-border:#da3633;"
+                "}"
+                "@media (prefers-color-scheme: light){"
+                ".chimerax-mcp-rich-report.cxmcp-auto-theme{"
+                f"--cxmcp-accent:{light_accent};"
+                "--cxmcp-bg:#ffffff;"
+                "--cxmcp-text:#111827;"
+                "--cxmcp-muted:#4b5563;"
+                "--cxmcp-panel:#f8fafc;"
+                "--cxmcp-border:#cbd5e1;"
+                "--cxmcp-card:#f8fafc;"
+                f"--cxmcp-table-header:{light_accent};"
+                "--cxmcp-badge:#2563eb;"
+                "--cxmcp-badge-text:#ffffff;"
+                "--cxmcp-callout-note-bg:#eff6ff;"
+                "--cxmcp-callout-note-border:#2563eb;"
+                "--cxmcp-callout-success-bg:#ecfdf5;"
+                "--cxmcp-callout-success-border:#16a34a;"
+                "--cxmcp-callout-warning-bg:#fffbeb;"
+                "--cxmcp-callout-warning-border:#d97706;"
+                "--cxmcp-callout-danger-bg:#fef2f2;"
+                "--cxmcp-callout-danger-border:#dc2626;"
+                "}"
+                "}"
+                "</style>"
+            ),
+            "class_suffix": " cxmcp-auto-theme",
+            "color_scheme": "color-scheme:light dark; ",
+            "accent": "var(--cxmcp-accent)",
+            "bg": "var(--cxmcp-bg)",
+            "text": "var(--cxmcp-text)",
+            "muted": "var(--cxmcp-muted)",
+            "panel": "var(--cxmcp-panel)",
+            "border": "var(--cxmcp-border)",
+            "card": "var(--cxmcp-card)",
+            "table_header": "var(--cxmcp-table-header)",
+            "badge": "var(--cxmcp-badge)",
+            "badge_text": "var(--cxmcp-badge-text)",
+            "callout_note_bg": "var(--cxmcp-callout-note-bg)",
+            "callout_note_border": "var(--cxmcp-callout-note-border)",
+            "callout_success_bg": "var(--cxmcp-callout-success-bg)",
+            "callout_success_border": "var(--cxmcp-callout-success-border)",
+            "callout_warning_bg": "var(--cxmcp-callout-warning-bg)",
+            "callout_warning_border": "var(--cxmcp-callout-warning-border)",
+            "callout_danger_bg": "var(--cxmcp-callout-danger-bg)",
+            "callout_danger_border": "var(--cxmcp-callout-danger-border)",
+        }
     if normalized == "light":
         default_accent = accent_color or "#0673c8"
         return {
+            "style_block": "",
+            "class_suffix": "",
+            "color_scheme": "",
             "accent": default_accent,
             "bg": "#ffffff",
             "text": "#111827",
@@ -459,6 +485,9 @@ def _rich_report_theme(theme: str, accent_color: str | None = None) -> dict[str,
 
     default_accent = accent_color or "#58a6ff"
     return {
+        "style_block": "",
+        "class_suffix": "",
+        "color_scheme": "",
         "accent": default_accent,
         "bg": "#0d1117",
         "text": "#e6edf3",
@@ -733,9 +762,10 @@ def _build_rich_report_html(
     """Build themed rich report HTML for the ChimeraX Log."""
     tokens = _rich_report_theme(theme, accent_color)
     html_parts = [
-        '<div class="chimerax-mcp-rich-report" '
+        tokens["style_block"],
+        f'<div class="chimerax-mcp-rich-report{tokens["class_suffix"]}" '
         f'style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif; '
-        f"color:{tokens['text']}; background:{tokens['bg']}; "
+        f"{tokens['color_scheme']}color:{tokens['text']}; background:{tokens['bg']}; "
         f"border:1px solid {tokens['border']}; border-radius:12px; padding:16px 18px; "
         'max-width:1040px; line-height:1.38; box-shadow:0 2px 10px rgba(0,0,0,.20);">',
         '<div style="display:flex; align-items:flex-start; justify-content:space-between; '

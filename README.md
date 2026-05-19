@@ -82,7 +82,7 @@ By default, the server auto-detects the latest installed ChimeraX. To use a spec
 | `chimerax_rich_log` | Write trusted caller-provided HTML to the ChimeraX Log |
 | `chimerax_rich_report` | Compose a themed rich HTML report from flexible blocks such as cards, tables, badges, callouts, legends, and raw HTML |
 
-`chimerax_rich_log` passes HTML through to ChimeraX with `is_html=True`; only use it with trusted input. `chimerax_rich_report` escapes plain text fields but allows raw HTML blocks for trusted local reports.
+`chimerax_rich_log` passes HTML through to ChimeraX with `is_html=True`; only use it with trusted input. `chimerax_rich_report` escapes plain text fields but allows raw HTML blocks for trusted local reports. Use `theme="auto"` to let generated reports follow the ChimeraX/system light or dark appearance where Qt WebEngine supports `prefers-color-scheme`; explicit `theme="light"` and `theme="dark"` remain available.
 
 ### View Management
 
@@ -157,7 +157,7 @@ Themed block-composer report:
 {
   "title": "Carbonic Anhydrase II active-site snapshot",
   "subtitle": "PDB 1CA2 · Zn²⁺ metalloenzyme",
-  "theme": "dark",
+  "theme": "auto",
   "accent_color": "#58a6ff",
   "blocks": [
     {
