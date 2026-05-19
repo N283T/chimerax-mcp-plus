@@ -881,6 +881,27 @@ class TestConstants:
         assert {"x", "y", "z"} == VALID_AXES
 
 
+def _extract_rich_log_ok_marker_from_script(script: str) -> str:
+    """Extract the generated rich-log OK marker from a test script."""
+    prefix = "session.logger.info('__CHIMERAX_MCP_RICH_LOG_OK__:"
+    for line in script.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(prefix):
+            return stripped.removeprefix("session.logger.info(").removesuffix(")").strip("'")
+    raise AssertionError("rich log OK marker not found")
+
+
+def _extract_rich_log_error_marker_from_script(script: str, message: str) -> str:
+    """Extract the generated rich-log error marker prefix and append a message."""
+    prefix = "session.logger.info('__CHIMERAX_MCP_RICH_LOG_ERROR__:"
+    for line in script.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(prefix):
+            marker_prefix = stripped.split("'", 2)[1]
+            return f"{marker_prefix}{message}"
+    raise AssertionError("rich log error marker not found")
+
+
 class TestRichLog:
     """Tests for chimerax_rich_log and helper script generation."""
 
@@ -919,13 +940,14 @@ class TestRichLog:
         assert _build_rich_log_html("<em>Body</em>") == "<em>Body</em>"
 
     def test_build_rich_log_script_uses_html_logger_and_thread_safe(self):
-        script = _build_rich_log_script("<p>Hello</p>", "warning")
+        script = _build_rich_log_script("<p>Hello</p>", "warning", marker_id="test-marker")
         assert "html_content = '<p>Hello</p>'" in script
         assert "logger_method = session.logger.warning" in script
         assert "is_html=True" in script
         assert "session.ui.thread_safe(write_log)" in script
         assert "write_log()" in script
-        assert "__CHIMERAX_MCP_RICH_LOG_OK__" in script
+        assert "__CHIMERAX_MCP_RICH_LOG_OK__:test-marker" in script
+        assert "__CHIMERAX_MCP_RICH_LOG_ERROR__:test-marker:" in script
 
     def test_rich_log_sends_runscript_when_running(self):
         mock_client = ChimeraXClient(port=59998)
@@ -933,10 +955,13 @@ class TestRichLog:
 
         def fake_run_command(cmd: str):
             commands_run.append(cmd)
+            script_path = Path(cmd.removeprefix("runscript ").strip('"'))
+            script = script_path.read_text()
+            marker = _extract_rich_log_ok_marker_from_script(script)
             return {
                 "python_values": [],
                 "json_values": [],
-                "log_messages": {"info": ["__CHIMERAX_MCP_RICH_LOG_OK__"]},
+                "log_messages": {"info": [marker]},
                 "error": None,
             }
 
@@ -955,11 +980,14 @@ class TestRichLog:
     def test_rich_log_returns_script_error(self):
         mock_client = ChimeraXClient(port=59998)
 
-        def fake_run_command(cmd: str):  # noqa: ARG001
+        def fake_run_command(cmd: str):
+            script_path = Path(cmd.removeprefix("runscript ").strip('"'))
+            script = script_path.read_text()
+            marker = _extract_rich_log_error_marker_from_script(script, "boom")
             return {
                 "python_values": [],
                 "json_values": [],
-                "log_messages": {"info": ["__CHIMERAX_MCP_RICH_LOG_ERROR__: boom"]},
+                "log_messages": {"info": [marker]},
                 "error": None,
             }
 
@@ -974,13 +1002,16 @@ class TestRichLog:
     def test_rich_log_ignores_error_text_without_sentinel(self):
         mock_client = ChimeraXClient(port=59998)
 
-        def fake_run_command(cmd: str):  # noqa: ARG001
+        def fake_run_command(cmd: str):
+            script_path = Path(cmd.removeprefix("runscript ").strip('"'))
+            script = script_path.read_text()
+            marker = _extract_rich_log_ok_marker_from_script(script)
             return {
                 "python_values": [],
                 "json_values": [],
                 "log_messages": {
                     "info": ["<p>Caller HTML mentions ERROR: but is not a marker</p>"],
-                    "note": ["__CHIMERAX_MCP_RICH_LOG_OK__"],
+                    "note": [marker],
                 },
                 "error": None,
             }
@@ -993,14 +1024,19 @@ class TestRichLog:
 
         assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
 
-    def test_rich_log_ignores_old_ok_text_without_sentinel(self):
+    def test_rich_log_ignores_static_sentinel_text_without_matching_nonce(self):
         mock_client = ChimeraXClient(port=59998)
 
         def fake_run_command(cmd: str):  # noqa: ARG001
             return {
                 "python_values": [],
                 "json_values": [],
-                "log_messages": {"info": ["OK: rich log written"]},
+                "log_messages": {
+                    "info": [
+                        "__CHIMERAX_MCP_RICH_LOG_ERROR__:not-the-nonce: caller text",
+                        "__CHIMERAX_MCP_RICH_LOG_OK__:not-the-nonce",
+                    ]
+                },
                 "error": None,
             }
 
@@ -1008,7 +1044,9 @@ class TestRichLog:
         mock_client.run_command = fake_run_command  # type: ignore[assignment]
 
         with patch("chimerax_mcp.server.get_client", return_value=mock_client):
-            result = chimerax_rich_log.fn(html="<p>OK: rich log written</p>")
+            result = chimerax_rich_log.fn(
+                html="<p>__CHIMERAX_MCP_RICH_LOG_ERROR__:not-the-nonce: caller text</p>"
+            )
 
         assert result["status"] == "error"
         assert "Unexpected output" in result["message"]
@@ -1021,10 +1059,13 @@ class TestRichLog:
 
         def fake_run_command(cmd: str):
             commands_run.append(cmd)
+            script_path = Path(cmd.removeprefix("runscript ").strip('"'))
+            script = script_path.read_text()
+            marker = _extract_rich_log_ok_marker_from_script(script)
             return {
                 "python_values": [],
                 "json_values": [],
-                "log_messages": {"info": ["__CHIMERAX_MCP_RICH_LOG_OK__"]},
+                "log_messages": {"info": [marker]},
                 "error": None,
             }
 
@@ -1047,7 +1088,7 @@ class TestRichLog:
             return {
                 "python_values": [],
                 "json_values": [],
-                "log_messages": {"info": ["__CHIMERAX_MCP_RICH_LOG_OK__"]},
+                "log_messages": {"info": ["__CHIMERAX_MCP_RICH_LOG_OK__:not-the-nonce"]},
                 "error": {"type": "UserError", "message": "runscript failed"},
             }
 

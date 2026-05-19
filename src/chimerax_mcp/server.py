@@ -10,6 +10,7 @@ import os
 import subprocess
 import tempfile
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -32,7 +33,7 @@ MIN_IMAGE_DIMENSION = 1
 VALID_AXES = {"x", "y", "z"}
 VALID_LOG_LEVELS = {"error", "info", "warning"}
 RICH_LOG_OK_SENTINEL = "__CHIMERAX_MCP_RICH_LOG_OK__"
-RICH_LOG_ERROR_SENTINEL = "__CHIMERAX_MCP_RICH_LOG_ERROR__:"
+RICH_LOG_ERROR_SENTINEL = "__CHIMERAX_MCP_RICH_LOG_ERROR__"
 _RESET_COMMANDS = [
     "hide pseudobonds",
     "hide atoms",
@@ -316,8 +317,11 @@ def _escape_html_value(value: Any) -> str:
     return html_lib.escape(str(value))
 
 
-def _build_rich_log_script(html: str, level: str) -> str:
+def _build_rich_log_script(html: str, level: str, marker_id: str | None = None) -> str:
     """Build a ChimeraX Python script that writes HTML to the Log."""
+    marker_id = marker_id or uuid.uuid4().hex
+    ok_marker = _rich_log_ok_marker(marker_id)
+    error_marker_prefix = _rich_log_error_marker_prefix(marker_id)
     direct_logger_hint = (
         f"    # logger_method = session.logger.{level}"
         if level in VALID_LOG_LEVELS
@@ -338,11 +342,21 @@ def _build_rich_log_script(html: str, level: str) -> str:
         "        session.ui.thread_safe(write_log)",
         "    else:",
         "        write_log()",
-        f"    session.logger.info({RICH_LOG_OK_SENTINEL!r})",
+        f"    session.logger.info({ok_marker!r})",
         "except Exception as exc:",
-        f"    session.logger.info({RICH_LOG_ERROR_SENTINEL!r} + ' ' + str(exc))",
+        f"    session.logger.info({error_marker_prefix!r} + str(exc))",
     ]
     return "\n".join(lines)
+
+
+def _rich_log_ok_marker(marker_id: str) -> str:
+    """Return a per-call rich log success marker."""
+    return f"{RICH_LOG_OK_SENTINEL}:{marker_id}"
+
+
+def _rich_log_error_marker_prefix(marker_id: str) -> str:
+    """Return a per-call rich log error marker prefix."""
+    return f"{RICH_LOG_ERROR_SENTINEL}:{marker_id}:"
 
 
 def _iter_structured_log_messages(result: dict[str, Any]) -> list[str]:
@@ -365,7 +379,10 @@ def _write_rich_log(html: str, level: str) -> dict[str, Any]:
     if not client.is_running():
         return {"status": "error", "message": "ChimeraX is not running"}
 
-    script = _build_rich_log_script(html=html, level=level)
+    marker_id = uuid.uuid4().hex
+    ok_marker = _rich_log_ok_marker(marker_id)
+    error_marker_prefix = _rich_log_error_marker_prefix(marker_id)
+    script = _build_rich_log_script(html=html, level=level, marker_id=marker_id)
     fd, script_path_str = tempfile.mkstemp(suffix=".py", prefix="chimerax_rich_log_")
     os.close(fd)
     script_path = Path(script_path_str)
@@ -384,13 +401,13 @@ def _write_rich_log(html: str, level: str) -> dict[str, Any]:
             return {"status": "error", "error_type": "Unknown", "message": str(err)}
 
         for message in _iter_structured_log_messages(result):
-            if message.startswith(RICH_LOG_ERROR_SENTINEL):
+            if message.startswith(error_marker_prefix):
                 return {
                     "status": "error",
-                    "message": message.removeprefix(RICH_LOG_ERROR_SENTINEL).strip(),
+                    "message": message.removeprefix(error_marker_prefix).strip(),
                 }
 
-        if RICH_LOG_OK_SENTINEL in _iter_structured_log_messages(result):
+        if ok_marker in _iter_structured_log_messages(result):
             return {"status": "ok", "level": level, "message": "Rich log written"}
 
         output = client._extract_output(result)
