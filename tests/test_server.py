@@ -1127,6 +1127,16 @@ class TestRichReport:
         assert result["status"] == "error"
         assert "level" in result["message"].lower()
 
+    def test_rich_report_rejects_invalid_table_rows(self):
+        result = chimerax_rich_report.fn(title="Report", tables=[{"rows": 3}])
+        assert result["status"] == "error"
+        assert "tables[0].rows" in result["message"]
+
+    def test_rich_report_rejects_invalid_table_columns(self):
+        result = chimerax_rich_report.fn(title="Report", tables=[{"columns": 3}])
+        assert result["status"] == "error"
+        assert "tables[0].columns" in result["message"]
+
     def test_rich_report_builds_html_and_writes_it(self):
         captured: dict[str, str] = {}
 

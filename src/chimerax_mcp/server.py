@@ -405,8 +405,10 @@ def _write_rich_log(html: str, level: str) -> dict[str, Any]:
 def _render_rich_report_table(table: dict[str, Any]) -> str:
     """Render a structured table for generated rich report HTML."""
     title = _escape_html_value(table.get("title", ""))
-    columns = table.get("columns") or []
-    rows = table.get("rows") or []
+    columns_value = table.get("columns") or []
+    rows_value = table.get("rows") or []
+    columns = columns_value if isinstance(columns_value, (list, tuple)) else []
+    rows = rows_value if isinstance(rows_value, (list, tuple)) else []
 
     header_cells = "".join(
         f"<th>{_escape_html_value(column)}</th>" for column in columns
@@ -436,6 +438,26 @@ def _render_rich_report_table(table: dict[str, Any]) -> str:
         ]
     )
     return "\n".join(html_parts)
+
+
+def _validate_rich_report_tables(tables: list[dict[str, Any]] | None) -> str | None:
+    """Validate rich report table shapes accepted from MCP clients."""
+    if tables is None:
+        return None
+
+    for index, table in enumerate(tables):
+        if not isinstance(table, dict):
+            return f"tables[{index}] must be a dict"
+
+        columns = table.get("columns")
+        if columns is not None and not isinstance(columns, (list, tuple)):
+            return f"tables[{index}].columns must be a list"
+
+        rows = table.get("rows")
+        if rows is not None and not isinstance(rows, (list, tuple)):
+            return f"tables[{index}].rows must be a list"
+
+    return None
 
 
 def _build_rich_report_html(
@@ -579,6 +601,10 @@ def chimerax_rich_report(
             "status": "error",
             "message": f"level must be one of: {', '.join(sorted(VALID_LOG_LEVELS))}",
         }
+
+    validation_error = _validate_rich_report_tables(tables)
+    if validation_error is not None:
+        return {"status": "error", "message": validation_error}
 
     report_html = _build_rich_report_html(
         title=title,
