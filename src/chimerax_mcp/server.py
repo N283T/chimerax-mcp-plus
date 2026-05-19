@@ -309,6 +309,13 @@ def _build_rich_log_html(html: str, title: str | None = None) -> str:
     )
 
 
+def _escape_html_value(value: Any) -> str:
+    """Escape a value for insertion into generated rich report HTML."""
+    if value is None:
+        return ""
+    return html_lib.escape(str(value))
+
+
 def _build_rich_log_script(html: str, level: str) -> str:
     """Build a ChimeraX Python script that writes HTML to the Log."""
     direct_logger_hint = (
@@ -395,9 +402,98 @@ def _write_rich_log(html: str, level: str) -> dict[str, Any]:
             script_path.unlink()
 
 
-def _build_rich_report_html(*args: Any, **kwargs: Any) -> str:
-    """Placeholder for the later rich report implementation."""
-    raise NotImplementedError("chimerax_rich_report is implemented in a later task")
+def _render_rich_report_table(table: dict[str, Any]) -> str:
+    """Render a structured table for generated rich report HTML."""
+    title = _escape_html_value(table.get("title", ""))
+    columns = table.get("columns") or []
+    rows = table.get("rows") or []
+
+    header_cells = "".join(
+        f"<th>{_escape_html_value(column)}</th>" for column in columns
+    )
+    body_rows: list[str] = []
+    for row in rows:
+        cells = row if isinstance(row, (list, tuple)) else [row]
+        body_cells = "".join(f"<td>{_escape_html_value(cell)}</td>" for cell in cells)
+        body_rows.append(f"<tr>{body_cells}</tr>")
+
+    html_parts = [
+        '<div class="chimerax-mcp-rich-report-table" style="margin: 0.75em 0;">'
+    ]
+    if title:
+        html_parts.append(f'<h4 style="margin: 0 0 0.35em 0;">{title}</h4>')
+    html_parts.extend(
+        [
+            '<table style="border-collapse: collapse; width: 100%;">',
+            "<thead>",
+            f"<tr>{header_cells}</tr>",
+            "</thead>",
+            "<tbody>",
+            *body_rows,
+            "</tbody>",
+            "</table>",
+            "</div>",
+        ]
+    )
+    return "\n".join(html_parts)
+
+
+def _build_rich_report_html(
+    title: str,
+    summary: str | None = None,
+    sections: list[dict[str, Any]] | None = None,
+    tables: list[dict[str, Any]] | None = None,
+    key_values: dict[str, Any] | None = None,
+    warnings: list[str] | None = None,
+) -> str:
+    """Build escaped HTML for a generic structured rich report."""
+    html_parts = [
+        '<div class="chimerax-mcp-rich-report" '
+        'style="font-family: -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif; '
+        'line-height: 1.35; margin: 0.4em 0;">',
+        f'<h2 style="margin: 0 0 0.35em 0; font-size: 1.25em;">{_escape_html_value(title)}</h2>',
+    ]
+
+    if summary:
+        html_parts.append(
+            f'<p class="chimerax-mcp-rich-report-summary">{_escape_html_value(summary)}</p>'
+        )
+
+    if key_values:
+        html_parts.append('<dl class="chimerax-mcp-rich-report-key-values">')
+        for key, value in key_values.items():
+            html_parts.append(f"<dt>{_escape_html_value(key)}</dt>")
+            html_parts.append(f"<dd>{_escape_html_value(value)}</dd>")
+        html_parts.append("</dl>")
+
+    if warnings:
+        html_parts.extend(
+            [
+                '<div class="chimerax-mcp-rich-report-warnings" '
+                'style="border-left: 0.25em solid #d99000; padding-left: 0.75em;">',
+                '<h3 style="margin: 0 0 0.35em 0;">Warnings</h3>',
+                "<ul>",
+            ]
+        )
+        for warning in warnings:
+            html_parts.append(f"<li>{_escape_html_value(warning)}</li>")
+        html_parts.extend(["</ul>", "</div>"])
+
+    for section in sections or []:
+        heading = _escape_html_value(section.get("heading", ""))
+        body = _escape_html_value(section.get("body", ""))
+        html_parts.append('<section class="chimerax-mcp-rich-report-section">')
+        if heading:
+            html_parts.append(f'<h3 style="margin: 0.75em 0 0.35em 0;">{heading}</h3>')
+        if body:
+            html_parts.append(f"<p>{body}</p>")
+        html_parts.append("</section>")
+
+    for table in tables or []:
+        html_parts.append(_render_rich_report_table(table))
+
+    html_parts.append("</div>")
+    return "\n".join(html_parts)
 
 
 @mcp.tool()
@@ -460,8 +556,39 @@ def chimerax_rich_report(
     warnings: list[str] | None = None,
     level: str = "info",
 ) -> dict[str, Any]:
-    """Placeholder for the later structured rich report tool."""
-    return {"status": "error", "message": "chimerax_rich_report is not implemented yet"}
+    """Write an escaped structured rich report to the ChimeraX Log.
+
+    Args:
+        title: Report title.
+        summary: Optional summary paragraph.
+        sections: Optional sections with ``heading`` and ``body`` values.
+        tables: Optional tables with ``title``, ``columns``, and ``rows`` values.
+        key_values: Optional key/value facts rendered as a definition list.
+        warnings: Optional warning messages rendered as a callout list.
+        level: Log level - ``info``, ``warning``, or ``error`` (default: info).
+
+    Returns:
+        Status of the rich report write operation.
+    """
+    if not title or not title.strip():
+        return {"status": "error", "message": "title must not be empty"}
+
+    normalized_level = _validate_log_level(level)
+    if normalized_level is None:
+        return {
+            "status": "error",
+            "message": f"level must be one of: {', '.join(sorted(VALID_LOG_LEVELS))}",
+        }
+
+    report_html = _build_rich_report_html(
+        title=title,
+        summary=summary,
+        sections=sections,
+        tables=tables,
+        key_values=key_values,
+        warnings=warnings,
+    )
+    return _write_rich_log(html=report_html, level=normalized_level)
 
 
 @mcp.tool()
