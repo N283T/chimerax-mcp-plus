@@ -16,11 +16,11 @@ from chimerax_mcp.server import (
     VALID_LOG_LEVELS,
     _build_rich_log_html,
     _build_rich_log_script,
-    _build_rich_report_html,  # noqa: F401
+    _build_rich_report_html,
     _build_tool_screenshot_script,
     chimerax_reset,
     chimerax_rich_log,
-    chimerax_rich_report,  # noqa: F401
+    chimerax_rich_report,
     chimerax_screenshot,
     chimerax_status,
     chimerax_tool_screenshot,
@@ -1062,3 +1062,94 @@ class TestRichLog:
             "error_type": "UserError",
             "message": "runscript failed",
         }
+
+
+class TestRichReport:
+    """Tests for generic rich report generation and logging."""
+
+    def test_build_rich_report_html_escapes_data_values(self):
+        html = _build_rich_report_html(
+            title="Model <One>",
+            summary="Contains <script>alert(1)</script>",
+            sections=[{"heading": "Section <A>", "body": "Body <unsafe>"}],
+            key_values={"Ligand <id>": "ATP <5>"},
+            warnings=["Check <distance>"],
+            tables=[
+                {
+                    "title": "Contacts <table>",
+                    "columns": ["Atom <1>", "Distance"],
+                    "rows": [["CA <A>", 3.2], ["CB", None]],
+                }
+            ],
+        )
+
+        assert "Model &lt;One&gt;" in html
+        assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
+        assert "Section &lt;A&gt;" in html
+        assert "Body &lt;unsafe&gt;" in html
+        assert "Ligand &lt;id&gt;" in html
+        assert "ATP &lt;5&gt;" in html
+        assert "Check &lt;distance&gt;" in html
+        assert "Contacts &lt;table&gt;" in html
+        assert "Atom &lt;1&gt;" in html
+        assert "CA &lt;A&gt;" in html
+        assert "<script>" not in html
+
+    def test_build_rich_report_html_renders_report_structure(self):
+        html = _build_rich_report_html(
+            title="Analysis Summary",
+            summary="Two models compared.",
+            sections=[{"heading": "Alignment", "body": "RMSD is 1.4 Å."}],
+            key_values={"Models": 2, "Method": "matchmaker"},
+            warnings=["One chain was missing."],
+            tables=[{"title": "Distances", "columns": ["Pair", "Å"], "rows": [["A-B", 2.8]]}],
+        )
+
+        assert "chimerax-mcp-rich-report" in html
+        assert "Analysis Summary" in html
+        assert "Two models compared." in html
+        assert "Alignment" in html
+        assert "RMSD is 1.4 Å." in html
+        assert "Models" in html
+        assert "matchmaker" in html
+        assert "One chain was missing." in html
+        assert "Distances" in html
+        assert "A-B" in html
+
+    def test_rich_report_rejects_empty_title(self):
+        result = chimerax_rich_report.fn(title="  ")
+        assert result["status"] == "error"
+        assert "title" in result["message"].lower()
+        assert "empty" in result["message"].lower()
+
+    def test_rich_report_rejects_invalid_level(self):
+        result = chimerax_rich_report.fn(title="Report", level="debug")
+        assert result["status"] == "error"
+        assert "level" in result["message"].lower()
+
+    def test_rich_report_sends_runscript_when_running(self):
+        mock_client = ChimeraXClient(port=59998)
+        commands_run: list[str] = []
+
+        def fake_run_command(cmd: str):
+            commands_run.append(cmd)
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {"info": ["__CHIMERAX_MCP_RICH_LOG_OK__"]},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run_command  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_rich_report.fn(
+                title="Analysis Summary",
+                summary="Complete",
+                key_values={"Models": 1},
+            )
+
+        assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
+        assert len(commands_run) == 1
+        assert commands_run[0].startswith("runscript ")
