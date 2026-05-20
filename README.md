@@ -9,6 +9,7 @@ MCP server for controlling UCSF ChimeraX molecular visualization.
 - **Screenshot Capture**: Take screenshots of the 3D view and tool windows
 - **Rich Log Output**: Write trusted HTML and generated analysis reports to the ChimeraX Log
 - **API Reference**: Search packaged/local ChimeraX docs and inspect live Python API symbols via safe `runscript` helpers
+- **Script Recipes**: Search bundled `runscript` Python patterns, including JSON and rich-report payload examples
 - **View Management**: Fit, rotate, and reset the view
 - **Session Management**: Save and load ChimeraX sessions
 
@@ -95,6 +96,15 @@ By default, the server auto-detects the latest installed ChimeraX. To use a spec
 | `chimerax_python_dir` | List attributes of a live ChimeraX Python API symbol with optional substring filtering |
 
 Static lookup uses `CHIMERAX_DOCS_PATH` first, then detected local ChimeraX docs, then repository-local skill docs when running from a checkout, and finally the packaged fallback index. Live introspection requires ChimeraX to be running and accepts only dotted symbols such as `chimerax.atomic.AtomicStructure`; it does not expose arbitrary Python evaluation.
+
+### Script Recipes
+
+| Tool | Description |
+|------|-------------|
+| `chimerax_script_recipe_search` | Search bundled ChimeraX `runscript` Python recipes by query, category, and output kind |
+| `chimerax_script_recipe_read` | Read a bundled recipe, including metadata, related API queries, optional official references, and the script body |
+
+Recipes are static examples and are not executed by these tools. They are intended to help an LLM write trusted ChimeraX Python scripts after consulting `chimerax_api_read` or `chimerax_python_inspect`. Some recipes emit `CHIMERAX_MCP_RESULT_JSON=...` marker lines for downstream parsing; recipes with `output_kind="rich_report_payload"` produce payloads shaped for `chimerax_rich_report`. Official RBVI ChimeraX Recipes are referenced as links where useful, but this package bundles its own short MCP-oriented examples.
 
 ### View Management
 
@@ -222,6 +232,32 @@ Themed block-composer report:
   ]
 }
 ```
+
+
+## Script Recipe Examples
+
+Find recipes that produce rich-report payloads:
+
+```json
+{
+  "query": "structure summary",
+  "category": "rich_report",
+  "output_kind": "rich_report_payload",
+  "limit": 5
+}
+```
+
+Read the recipe script:
+
+```json
+{
+  "recipe_id": "structure_summary_rich_report_payload",
+  "include_script": true,
+  "max_chars": 8000
+}
+```
+
+A rich-report recipe emits a `CHIMERAX_MCP_RESULT_JSON=` line containing a payload with `title` and `blocks`. After extracting that payload, pass it to `chimerax_rich_report` to display a styled report in the ChimeraX Log.
 
 ## API Reference Examples
 

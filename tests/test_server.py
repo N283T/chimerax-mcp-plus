@@ -27,6 +27,8 @@ from chimerax_mcp.server import (
     chimerax_rich_log,
     chimerax_rich_report,
     chimerax_screenshot,
+    chimerax_script_recipe_read,
+    chimerax_script_recipe_search,
     chimerax_start,
     chimerax_status,
     chimerax_tool_screenshot,
@@ -1519,3 +1521,34 @@ class TestRichReport:
         assert "Complete" in captured["html"]
         assert captured["save_html_path"] == "/tmp/report.html"
         assert captured["overwrite"] == "True"
+
+
+class TestScriptRecipeTools:
+    def test_chimerax_script_recipe_search_finds_rich_report_recipe(self):
+        result = chimerax_script_recipe_search.fn(
+            query="structure summary",
+            category="rich_report",
+            output_kind="rich_report_payload",
+            limit=5,
+        )
+
+        assert result["status"] == "ok"
+        assert result["results"][0]["id"] == "structure_summary_rich_report_payload"
+        assert "chimerax_rich_report" in result["results"][0]["suggested_next_tools"]
+
+    def test_chimerax_script_recipe_read_returns_recipe_script(self):
+        result = chimerax_script_recipe_read.fn(recipe_id="emit_mcp_json_marker")
+
+        assert result["status"] == "ok"
+        assert result["id"] == "emit_mcp_json_marker"
+        assert "CHIMERAX_MCP_RESULT_JSON=" in result["script"]
+
+    def test_chimerax_script_recipe_read_can_omit_script(self):
+        result = chimerax_script_recipe_read.fn(
+            recipe_id="structure_summary_rich_report_payload",
+            include_script=False,
+        )
+
+        assert result["status"] == "ok"
+        assert result["output_kind"] == "rich_report_payload"
+        assert "script" not in result
