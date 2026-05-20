@@ -16,6 +16,8 @@ from urllib.parse import quote
 
 import httpx
 
+from chimerax_mcp.commands import quote_chimerax_path
+
 logger = logging.getLogger(__name__)
 
 
@@ -144,7 +146,7 @@ class ChimeraXClient:
         else:
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        self.run_command(f"save {output_path} width {width} height {height}")
+        self.run_command(f"save {quote_chimerax_path(output_path)} width {width} height {height}")
 
         if not output_path.exists():
             msg = f"ChimeraX save command completed but file not found: {output_path}"

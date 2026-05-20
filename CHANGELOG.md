@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Respect custom `chimerax_start(port=...)` values when checking REST readiness.
+- Quote ChimeraX file paths with spaces for screenshot and session commands.
+
+### Changed
+- Extract rich report rendering and command path quoting helpers into focused modules.
+
 ## [0.5.0] - 2026-05-20
 
 ### Added
