@@ -1,0 +1,294 @@
+{
+  "version": 1,
+  "recipes": [
+    {
+      "id": "run_commands_from_python",
+      "title": "Run ChimeraX commands from Python",
+      "category": "commands",
+      "output_kind": "command_sequence",
+      "description": "Use chimerax.core.commands.run when a display operation is easier or more stable as a ChimeraX command than direct API calls.",
+      "uses_api": [
+        "chimerax.core.commands.run",
+        "session"
+      ],
+      "related_api_queries": [
+        "chimerax.core.commands",
+        "run command",
+        "runscript"
+      ],
+      "suggested_next_tools": [
+        "chimerax_api_read"
+      ],
+      "official_references": [
+        {
+          "title": "ChimeraX Recipes",
+          "url": "https://rbvi.github.io/chimerax-recipes/"
+        }
+      ],
+      "notes": [
+        "This is often the best bridge between Python automation and ChimeraX display commands.",
+        "Only run command strings that you trust or construct carefully."
+      ],
+      "script": "from chimerax.core.commands import run\n\n# The global `session` object is available in ChimeraX runscript files.\nrun(session, \"open 1a0s\")\nrun(session, \"cartoon\")\nrun(session, \"color bychain\")\nrun(session, \"view\")\nsession.logger.info(\"Opened and styled 1a0s\")\n"
+    },
+    {
+      "id": "iterate_atomic_models",
+      "title": "Iterate open atomic models",
+      "category": "models",
+      "output_kind": "log_text",
+      "description": "List open AtomicStructure models and log basic atom/residue/chain counts.",
+      "uses_api": [
+        "chimerax.atomic.AtomicStructure",
+        "session.models"
+      ],
+      "related_api_queries": [
+        "AtomicStructure",
+        "session.models",
+        "chimerax.atomic"
+      ],
+      "suggested_next_tools": [
+        "chimerax_api_read",
+        "chimerax_python_inspect"
+      ],
+      "official_references": [
+        {
+          "title": "Save images of each chain of a structure",
+          "url": "https://rbvi.github.io/chimerax-recipes/chain_images/"
+        }
+      ],
+      "notes": [
+        "Use this as a starting point for scripts that need to inspect every loaded molecular model."
+      ],
+      "script": "from chimerax.atomic import AtomicStructure\n\nmodels = [m for m in session.models if isinstance(m, AtomicStructure)]\nif not models:\n    session.logger.warning(\"No atomic structures are open\")\n\nfor model in models:\n    chain_ids = sorted({chain.chain_id for chain in model.chains})\n    session.logger.info(\n        f\"#{model.id_string} {model.name}: \"\n        f\"{model.num_atoms} atoms, {model.num_residues} residues, \"\n        f\"{len(chain_ids)} chains ({', '.join(chain_ids)})\"\n    )\n"
+    },
+    {
+      "id": "selection_summary",
+      "title": "Summarize the current atom selection",
+      "category": "selection",
+      "output_kind": "json_payload",
+      "description": "Collect selected atoms and residues, then emit a JSON marker that an MCP caller can parse from the ChimeraX Log.",
+      "uses_api": [
+        "chimerax.atomic.selected_atoms",
+        "chimerax.atomic.selected_residues"
+      ],
+      "related_api_queries": [
+        "selected_atoms",
+        "selected_residues",
+        "selection"
+      ],
+      "suggested_next_tools": [
+        "chimerax_api_read",
+        "chimerax_rich_report"
+      ],
+      "official_references": [
+        {
+          "title": "Select overlapped atoms",
+          "url": "https://rbvi.github.io/chimerax-recipes/overlap/"
+        }
+      ],
+      "notes": [
+        "The marker prefix is intentionally distinct from ChimeraX's normal log text."
+      ],
+      "script": "import json\nfrom chimerax.atomic import selected_atoms, selected_residues\n\natoms = selected_atoms(session)\nresidues = selected_residues(session)\npayload = {\n    \"selected_atoms\": len(atoms),\n    \"selected_residues\": len(residues),\n    \"residues\": [str(r) for r in residues[:50]],\n    \"truncated\": len(residues) > 50,\n}\nsession.logger.info(\"CHIMERAX_MCP_RESULT_JSON=\" + json.dumps(payload, ensure_ascii=False))\n"
+    },
+    {
+      "id": "emit_mcp_json_marker",
+      "title": "Emit JSON for an MCP caller",
+      "category": "mcp",
+      "output_kind": "json_payload",
+      "description": "Minimal pattern for returning structured results from a runscript by writing a marker-prefixed JSON line to the ChimeraX Log.",
+      "uses_api": [
+        "session.logger.info",
+        "json.dumps"
+      ],
+      "related_api_queries": [
+        "session.logger",
+        "runscript"
+      ],
+      "suggested_next_tools": [
+        "chimerax_rich_report"
+      ],
+      "official_references": [],
+      "notes": [
+        "A future Python-run tool can extract this marker automatically.",
+        "Keep payloads bounded so the MCP response remains manageable."
+      ],
+      "script": "import json\n\npayload = {\n    \"status\": \"ok\",\n    \"message\": \"structured result from ChimeraX\",\n    \"items\": [],\n}\nsession.logger.info(\"CHIMERAX_MCP_RESULT_JSON=\" + json.dumps(payload, ensure_ascii=False))\n"
+    },
+    {
+      "id": "structure_summary_json",
+      "title": "Build a structure summary JSON payload",
+      "category": "analysis",
+      "output_kind": "json_payload",
+      "description": "Summarize open atomic structures as JSON for downstream processing by an MCP client or LLM.",
+      "uses_api": [
+        "chimerax.atomic.AtomicStructure",
+        "session.models"
+      ],
+      "related_api_queries": [
+        "AtomicStructure",
+        "Atom",
+        "Residue",
+        "Chain"
+      ],
+      "suggested_next_tools": [
+        "chimerax_api_read",
+        "chimerax_rich_report"
+      ],
+      "official_references": [
+        {
+          "title": "Inspect atomic data structures interactively in Python",
+          "url": "https://rbvi.github.io/chimerax-recipes/inspect/"
+        }
+      ],
+      "notes": [
+        "This produces raw JSON, not a rich report block list."
+      ],
+      "script": "import json\nfrom chimerax.atomic import AtomicStructure\n\nmodels = [m for m in session.models if isinstance(m, AtomicStructure)]\nrows = []\nfor model in models:\n    rows.append({\n        \"id\": f\"#{model.id_string}\",\n        \"name\": model.name,\n        \"atoms\": model.num_atoms,\n        \"residues\": model.num_residues,\n        \"chains\": len(model.chains),\n    })\n\npayload = {\n    \"model_count\": len(models),\n    \"atom_count\": sum(row[\"atoms\"] for row in rows),\n    \"residue_count\": sum(row[\"residues\"] for row in rows),\n    \"models\": rows,\n}\nsession.logger.info(\"CHIMERAX_MCP_RESULT_JSON=\" + json.dumps(payload, ensure_ascii=False))\n"
+    },
+    {
+      "id": "structure_summary_rich_report_payload",
+      "title": "Build a structure summary rich report payload",
+      "category": "rich_report",
+      "output_kind": "rich_report_payload",
+      "description": "Analyze open atomic structures and emit a JSON payload shaped for the chimerax_rich_report tool.",
+      "uses_api": [
+        "chimerax.atomic.AtomicStructure",
+        "session.models",
+        "session.logger.info"
+      ],
+      "related_api_queries": [
+        "AtomicStructure",
+        "session.models",
+        "chimerax_rich_report blocks"
+      ],
+      "suggested_next_tools": [
+        "chimerax_rich_report"
+      ],
+      "official_references": [
+        {
+          "title": "Save images of each chain of a structure",
+          "url": "https://rbvi.github.io/chimerax-recipes/chain_images/"
+        }
+      ],
+      "notes": [
+        "The emitted JSON can be passed to chimerax_rich_report after extracting the CHIMERAX_MCP_RESULT_JSON marker.",
+        "Plain text fields in chimerax_rich_report are escaped by the MCP tool."
+      ],
+      "script": "import json\nfrom chimerax.atomic import AtomicStructure\n\nmodels = [m for m in session.models if isinstance(m, AtomicStructure)]\nrows = []\nfor model in models:\n    chain_count = len(model.chains)\n    rows.append([f\"#{model.id_string}\", model.name, model.num_atoms, model.num_residues, chain_count])\n\natom_count = sum(row[2] for row in rows)\nresidue_count = sum(row[3] for row in rows)\npayload = {\n    \"title\": \"ChimeraX structure summary\",\n    \"subtitle\": \"Generated from a runscript Python recipe\",\n    \"blocks\": [\n        {\n            \"type\": \"cards\",\n            \"items\": [\n                {\"label\": \"Models\", \"value\": len(rows)},\n                {\"label\": \"Atoms\", \"value\": atom_count},\n                {\"label\": \"Residues\", \"value\": residue_count},\n            ],\n        },\n        {\n            \"type\": \"table\",\n            \"title\": \"Open atomic models\",\n            \"columns\": [\"Model\", \"Name\", \"Atoms\", \"Residues\", \"Chains\"],\n            \"rows\": rows,\n        },\n    ],\n}\nsession.logger.info(\"CHIMERAX_MCP_RESULT_JSON=\" + json.dumps(payload, ensure_ascii=False))\n"
+    },
+    {
+      "id": "measure_ca_distance",
+      "title": "Measure a CA distance between two residues",
+      "category": "measurement",
+      "output_kind": "json_payload",
+      "description": "Look up two residues by chain ID and residue number, then compute the distance between their CA atoms.",
+      "uses_api": [
+        "chimerax.atomic.AtomicStructure",
+        "Atom.coord"
+      ],
+      "related_api_queries": [
+        "AtomicStructure residues",
+        "Residue atoms",
+        "Atom coord"
+      ],
+      "suggested_next_tools": [
+        "chimerax_api_read",
+        "chimerax_python_inspect"
+      ],
+      "official_references": [
+        {
+          "title": "Plot residue-residue distances",
+          "url": "https://rbvi.github.io/chimerax-recipes/rrdist/"
+        }
+      ],
+      "notes": [
+        "Edit chain_id_1/residue_number_1 and chain_id_2/residue_number_2 before running."
+      ],
+      "script": "import json\nfrom chimerax.atomic import AtomicStructure\n\nchain_id_1, residue_number_1 = \"A\", 10\nchain_id_2, residue_number_2 = \"A\", 50\nmodel = next((m for m in session.models if isinstance(m, AtomicStructure)), None)\nif model is None:\n    raise RuntimeError(\"No atomic structure is open\")\n\ndef find_ca(chain_id, residue_number):\n    for residue in model.residues:\n        if residue.chain_id == chain_id and residue.number == residue_number:\n            for atom in residue.atoms:\n                if atom.name == \"CA\":\n                    return atom\n    raise RuntimeError(f\"CA atom not found for {chain_id}:{residue_number}\")\n\na1 = find_ca(chain_id_1, residue_number_1)\na2 = find_ca(chain_id_2, residue_number_2)\ndistance = float(((a1.coord - a2.coord) ** 2).sum() ** 0.5)\npayload = {\n    \"model\": f\"#{model.id_string}\",\n    \"atom_1\": str(a1),\n    \"atom_2\": str(a2),\n    \"distance_angstrom\": distance,\n}\nsession.logger.info(\"CHIMERAX_MCP_RESULT_JSON=\" + json.dumps(payload, ensure_ascii=False))\n"
+    },
+    {
+      "id": "find_nearby_residues",
+      "title": "Find residues near selected atoms",
+      "category": "analysis",
+      "output_kind": "json_payload",
+      "description": "Find residues with atoms within a cutoff of the current atom selection.",
+      "uses_api": [
+        "chimerax.atomic.selected_atoms",
+        "chimerax.atomic.all_atoms"
+      ],
+      "related_api_queries": [
+        "selected_atoms",
+        "all_atoms",
+        "Atom coord",
+        "Residue"
+      ],
+      "suggested_next_tools": [
+        "chimerax_api_read",
+        "chimerax_rich_report"
+      ],
+      "official_references": [
+        {
+          "title": "Find closest pair of atoms",
+          "url": "https://rbvi.github.io/chimerax-recipes/closest/"
+        }
+      ],
+      "notes": [
+        "This simple O(n*m) pattern is best for small selections; optimize for large systems."
+      ],
+      "script": "import json\nfrom chimerax.atomic import all_atoms, selected_atoms\n\ncutoff = 4.0\nselected = selected_atoms(session)\nif len(selected) == 0:\n    raise RuntimeError(\"Select one or more atoms before running this recipe\")\nnearby = {}\ncutoff2 = cutoff * cutoff\nfor atom in all_atoms(session):\n    if atom in selected:\n        continue\n    for selected_atom in selected:\n        if float(((atom.coord - selected_atom.coord) ** 2).sum()) <= cutoff2:\n            nearby[str(atom.residue)] = atom.residue\n            break\n\nresidue_names = sorted(nearby)\npayload = {\n    \"cutoff_angstrom\": cutoff,\n    \"selected_atoms\": len(selected),\n    \"nearby_residue_count\": len(residue_names),\n    \"nearby_residues\": residue_names[:100],\n    \"truncated\": len(residue_names) > 100,\n}\nsession.logger.info(\"CHIMERAX_MCP_RESULT_JSON=\" + json.dumps(payload, ensure_ascii=False))\n"
+    },
+    {
+      "id": "color_by_chain_with_commands",
+      "title": "Color models by chain from Python",
+      "category": "visualization",
+      "output_kind": "command_sequence",
+      "description": "Use ChimeraX commands from Python to apply a common visualization style and color chains distinctly.",
+      "uses_api": [
+        "chimerax.core.commands.run"
+      ],
+      "related_api_queries": [
+        "color command",
+        "cartoon command",
+        "view command"
+      ],
+      "suggested_next_tools": [
+        "chimerax_api_search",
+        "chimerax_api_read"
+      ],
+      "official_references": [
+        {
+          "title": "Copy chain colors from one structure to another",
+          "url": "https://rbvi.github.io/chimerax-recipes/copycolors/"
+        }
+      ],
+      "notes": [
+        "Visualization state is often best expressed as ChimeraX commands even inside a Python script."
+      ],
+      "script": "from chimerax.core.commands import run\n\nrun(session, \"hide atoms\")\nrun(session, \"cartoon\")\nrun(session, \"color bychain\")\nrun(session, \"lighting soft\")\nrun(session, \"view\")\nsession.logger.info(\"Applied cartoon and chain coloring\")\n"
+    },
+    {
+      "id": "error_handling_template",
+      "title": "Return script errors as structured JSON",
+      "category": "mcp",
+      "output_kind": "json_payload",
+      "description": "Wrap a script body in try/except and emit either a success or error JSON marker for an MCP caller.",
+      "uses_api": [
+        "session.logger.info",
+        "session.logger.error"
+      ],
+      "related_api_queries": [
+        "session.logger",
+        "runscript"
+      ],
+      "suggested_next_tools": [
+        "chimerax_rich_report"
+      ],
+      "official_references": [],
+      "notes": [
+        "Use this template when the caller needs machine-readable failures rather than only traceback text."
+      ],
+      "script": "import json\nimport traceback\n\ntry:\n    # Replace this block with the actual analysis.\n    payload = {\"status\": \"ok\", \"message\": \"script completed\"}\nexcept Exception as exc:\n    session.logger.error(traceback.format_exc())\n    payload = {\n        \"status\": \"error\",\n        \"error_type\": type(exc).__name__,\n        \"message\": str(exc),\n    }\n\nsession.logger.info(\"CHIMERAX_MCP_RESULT_JSON=\" + json.dumps(payload, ensure_ascii=False))\n"
+    }
+  ]
+}

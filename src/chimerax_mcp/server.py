@@ -24,6 +24,7 @@ from chimerax_mcp.python_api import (
     run_python_api_script,
     validate_symbol,
 )
+from chimerax_mcp.script_recipes import read_script_recipe, search_script_recipes
 
 mcp = FastMCP("chimerax-mcp")
 
@@ -311,6 +312,40 @@ def chimerax_python_dir(
 
     script = build_python_dir_script(symbol=symbol, filter_text=filter, limit=limit)
     return run_python_api_script(client, script)
+
+
+@mcp.tool()
+def chimerax_script_recipe_search(
+    query: str,
+    category: str = "all",
+    output_kind: str = "all",
+    limit: int = 10,
+) -> dict[str, Any]:
+    """Search bundled ChimeraX Python script recipes.
+
+    Recipes are static examples for trusted runscript workflows; this tool
+    does not execute Python code.
+    """
+    return search_script_recipes(
+        query=query,
+        category=category,
+        output_kind=output_kind,
+        limit=limit,
+    )
+
+
+@mcp.tool()
+def chimerax_script_recipe_read(
+    recipe_id: str,
+    include_script: bool = True,
+    max_chars: int = 10000,
+) -> dict[str, Any]:
+    """Read a bundled ChimeraX Python script recipe by ID."""
+    return read_script_recipe(
+        recipe_id=recipe_id,
+        include_script=include_script,
+        max_chars=max_chars,
+    )
 
 
 def _format_response(result: dict[str, Any]) -> dict[str, Any]:
