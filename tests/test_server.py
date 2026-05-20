@@ -1389,6 +1389,64 @@ class TestRichReport:
         assert "<p><b>Trusted raw HTML</b></p>" in html
         assert "Text <script>" not in html
 
+
+    def test_build_rich_report_html_renders_structured_command_links(self):
+        html = _build_rich_report_html(
+            title="Linked report",
+            blocks=[
+                {
+                    "type": "table",
+                    "columns": ["Model", "Chain", "Residue", "Action"],
+                    "rows": [
+                        [
+                            {"text": "#1", "spec": "#1", "action": "select"},
+                            {"text": "P", "spec": "#1/P", "action": "select"},
+                            {"text": "P:120", "spec": "#1/P:120", "action": "view"},
+                            {"text": "metadata", "spec": "#1", "action": "metadata"},
+                        ]
+                    ],
+                },
+                {
+                    "type": "cards",
+                    "items": [
+                        {
+                            "label": {"text": "Select model", "command": "select #1"},
+                            "value": {"text": "#1", "command": "view #1"},
+                        }
+                    ],
+                },
+                {
+                    "type": "badges",
+                    "items": [{"label": "Chain P", "spec": "#1/P", "action": "select"}],
+                },
+            ],
+        )
+
+        assert '<a href="cxcmd:select%20%231">#1</a>' in html
+        assert '<a href="cxcmd:select%20%231%2FP">P</a>' in html
+        assert '<a href="cxcmd:view%20%231%2FP%3A120">P:120</a>' in html
+        assert '<a href="cxcmd:log%20metadata%20%231">metadata</a>' in html
+        assert '<a href="cxcmd:select%20%231">Select model</a>' in html
+        assert '<a href="cxcmd:view%20%231">#1</a>' in html
+        assert '<a href="cxcmd:select%20%231%2FP">Chain P</a>' in html
+        assert "{'text': 'Select model'" not in html
+
+    def test_build_rich_report_html_escapes_command_link_labels(self):
+        html = _build_rich_report_html(
+            title="Linked report",
+            blocks=[
+                {
+                    "type": "table",
+                    "columns": ["Residue"],
+                    "rows": [[{"text": "<P:120>", "spec": "#1/P:120", "action": "select"}]],
+                }
+            ],
+        )
+
+        assert "&lt;P:120&gt;" in html
+        assert "<P:120>" not in html
+        assert 'href="cxcmd:select%20%231%2FP%3A120"' in html
+
     def test_build_rich_report_html_renders_badges_and_legend(self):
         html = _build_rich_report_html(
             title="Legend report",
