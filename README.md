@@ -125,36 +125,6 @@ Recipes are static examples and are not executed by these tools. They are intend
 | `chimerax_session_save` | Save session |
 | `chimerax_session_open` | Load session |
 
-## Claude Code Skills
-
-This repository includes Claude Code skills for ChimeraX documentation reference and bundle development.
-
-| Skill | Description |
-|-------|-------------|
-| `/explore-chimerax` | ChimeraX command exploration and documentation reference |
-| `/reference-chimerax-dev` | Bundle/extension development reference |
-
-To use these skills, symlink them into your Claude Code skills directory:
-
-```bash
-ln -s /path/to/chimerax-mcp-plus/skills/* ~/.claude/skills/
-```
-
-## Claude Code Agents
-
-This repository includes specialized agents for ChimeraX workflows.
-
-| Agent | Description |
-|--------|-------------|
-| `chimerax-operator` | MCP operator for molecular visualization and manipulation |
-| `structural-biologist` | Structural biology expert for protein and molecular analysis |
-| `chimerax-developer` | Bundle and extension developer using echidna |
-
-To use these agents, symlink them into your Claude Code agents directory:
-
-```bash
-ln -s /path/to/chimerax-mcp-plus/.claude/agents/* ~/.claude/agents/
-```
 
 ## How It Works
 

@@ -8,3 +8,5 @@ plans/
 reports/
 .coverage
 coverage.xml
+.codex/
+docs/superpowers/
