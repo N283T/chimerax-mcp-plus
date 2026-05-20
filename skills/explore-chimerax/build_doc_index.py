@@ -17,7 +17,7 @@ import html.parser
 import json
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -254,7 +254,7 @@ def build_index(docs_path: Path, version: str) -> dict:
 
     return {
         "version": version,
-        "created": datetime.now(timezone.utc).isoformat(),
+        "created": datetime.now(UTC).isoformat(),
         "commands": commands,
         "tutorials": tutorials,
         "modules": modules,

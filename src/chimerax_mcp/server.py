@@ -16,7 +16,14 @@ from typing import Any
 import httpx
 from fastmcp import FastMCP
 
+from chimerax_mcp.api_docs import read_api_target, search_api_index
 from chimerax_mcp.chimerax import ChimeraXClient, detect_chimerax, start_chimerax
+from chimerax_mcp.python_api import (
+    build_python_dir_script,
+    build_python_inspect_script,
+    run_python_api_script,
+    validate_symbol,
+)
 
 mcp = FastMCP("chimerax-mcp")
 
@@ -247,6 +254,63 @@ def chimerax_status(include_version: bool = False) -> dict[str, Any]:
                 response["version"] = "unknown"
         return response
     return {"status": "ok", "running": False}
+
+
+@mcp.tool()
+def chimerax_api_search(query: str, kind: str = "all", limit: int = 10) -> dict[str, Any]:
+    """Search static ChimeraX command/tutorial/Python API metadata.
+
+    Works without optional local skills via packaged index.
+    """
+    return search_api_index(query=query, kind=kind, limit=limit)
+
+
+@mcp.tool()
+def chimerax_api_read(target: str, max_chars: int = 6000) -> dict[str, Any]:
+    """Read bounded static ChimeraX API documentation content."""
+    return read_api_target(target=target, max_chars=max_chars)
+
+
+@mcp.tool()
+def chimerax_python_inspect(
+    symbol: str,
+    include_dir: bool = True,
+    max_doc_chars: int = 4000,
+) -> dict[str, Any]:
+    """Inspect a live ChimeraX Python API symbol."""
+    validation_error = validate_symbol(symbol)
+    if validation_error is not None:
+        return {"status": "error", "message": validation_error}
+
+    client = get_client()
+    if not client.is_running():
+        return {"status": "error", "message": "ChimeraX is not running"}
+
+    script = build_python_inspect_script(
+        symbol=symbol,
+        include_dir=include_dir,
+        max_doc_chars=max_doc_chars,
+    )
+    return run_python_api_script(client, script)
+
+
+@mcp.tool()
+def chimerax_python_dir(
+    symbol: str,
+    filter: str | None = None,  # noqa: A002
+    limit: int = 100,
+) -> dict[str, Any]:
+    """List live ChimeraX Python API attributes for a symbol."""
+    validation_error = validate_symbol(symbol)
+    if validation_error is not None:
+        return {"status": "error", "message": validation_error}
+
+    client = get_client()
+    if not client.is_running():
+        return {"status": "error", "message": "ChimeraX is not running"}
+
+    script = build_python_dir_script(symbol=symbol, filter_text=filter, limit=limit)
+    return run_python_api_script(client, script)
 
 
 def _format_response(result: dict[str, Any]) -> dict[str, Any]:
