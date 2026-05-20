@@ -10,6 +10,8 @@ from typing import Any
 
 import httpx
 
+from chimerax_mcp.commands import quote_chimerax_path
+
 MARKER = "CHIMERAX_MCP_PYTHON_API_JSON="
 _SYMBOL_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)+")
 _INVALID_SYMBOL_MESSAGE = (
@@ -191,11 +193,6 @@ def parse_introspection_result(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _quote_chimerax_path(path: Path) -> str:
-    """Quote a local path for ChimeraX command-line use."""
-    return "'" + str(path).replace("'", "\\'") + "'"
-
-
 def run_python_api_script(client: Any, script: str) -> dict[str, Any]:
     """Write, run, and parse a ChimeraX Python introspection script."""
     temp_path: Path | None = None
@@ -210,7 +207,7 @@ def run_python_api_script(client: Any, script: str) -> dict[str, Any]:
             temp_file.write(script)
             temp_path = Path(temp_file.name)
 
-        result = client.run_command(f"runscript {_quote_chimerax_path(temp_path)}")
+        result = client.run_command(f"runscript {quote_chimerax_path(temp_path)}")
     except httpx.HTTPError as err:
         return {
             "status": "error",

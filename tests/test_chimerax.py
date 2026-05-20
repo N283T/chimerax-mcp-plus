@@ -257,6 +257,25 @@ class TestScreenshot:
         assert result == user_path
         assert result.exists()
 
+    def test_explicit_output_path_with_spaces_is_quoted(self, tmp_path: Path):
+        """Paths with spaces are quoted before sending the save command to ChimeraX."""
+        client = ChimeraXClient(port=59998)
+        user_path = tmp_path.joinpath("space dir", "my shot.png")
+        commands_called: list[str] = []
+
+        def fake_run_command(cmd: str):
+            commands_called.append(cmd)
+            user_path.parent.mkdir(parents=True, exist_ok=True)
+            user_path.write_bytes(b"PNG_DATA")
+            return self._ok_result()
+
+        client.run_command = fake_run_command  # type: ignore[assignment]
+
+        result = client.screenshot(output_path=user_path)
+
+        assert result == user_path
+        assert commands_called == [f'save "{user_path}" width 1024 height 768']
+
     def test_raises_if_file_not_created(self, tmp_path: Path):
         """OSError raised when save command succeeds but file is missing."""
         client = ChimeraXClient(port=59998)

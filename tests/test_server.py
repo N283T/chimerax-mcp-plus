@@ -29,6 +29,7 @@ from chimerax_mcp.server import (
     chimerax_screenshot,
     chimerax_script_recipe_read,
     chimerax_script_recipe_search,
+    chimerax_session_save,
     chimerax_start,
     chimerax_status,
     chimerax_tool_screenshot,
@@ -251,6 +252,36 @@ class TestStartTool:
             "version": "UCSF ChimeraX version 1.11.1",
         }
 
+    def test_start_uses_requested_port_for_readiness_checks(self):
+        created_ports: list[int] = []
+
+        class FakeClient:
+            def __init__(self, host: str = "127.0.0.1", port: int = 63269) -> None:
+                self.host = host
+                self.port = port
+                self.running_checks = 0
+                created_ports.append(port)
+
+            def is_running(self) -> bool:
+                self.running_checks += 1
+                return self.running_checks > 1
+
+        class FakeProcess:
+            def poll(self) -> None:
+                return None
+
+        with (
+            patch("chimerax_mcp.server._client", None),
+            patch("chimerax_mcp.server._process", None),
+            patch("chimerax_mcp.server.ChimeraXClient", FakeClient),
+            patch("chimerax_mcp.server.start_chimerax", return_value=FakeProcess()),
+            patch("chimerax_mcp.server.time.sleep"),
+        ):
+            result = chimerax_start.fn(port=65432, wait_seconds=3)
+
+        assert created_ports == [65432]
+        assert result == {"status": "started", "port": 65432}
+
 
 class TestApiReferenceTools:
     def test_chimerax_api_search_returns_atomic_module_results(self):
@@ -470,6 +501,31 @@ class TestTurnTool:
             chimerax_turn.fn(axis="X", angle=90)
 
         assert commands_run == ["turn x 90"]
+
+
+class TestSessionTools:
+    def test_session_save_quotes_paths_with_spaces(self, tmp_path: Path):
+        mock_client = ChimeraXClient(port=59998)
+        commands_run: list[str] = []
+        session_path = tmp_path.joinpath("space dir", "saved session.cxs")
+
+        def fake_run(cmd: str):
+            commands_run.append(cmd)
+            return {
+                "python_values": [],
+                "json_values": [],
+                "log_messages": {"info": ["saved"]},
+                "error": None,
+            }
+
+        mock_client.is_running = lambda: True  # type: ignore[assignment]
+        mock_client.run_command = fake_run  # type: ignore[assignment]
+
+        with patch("chimerax_mcp.server.get_client", return_value=mock_client):
+            result = chimerax_session_save.fn(path=str(session_path))
+
+        assert result["status"] == "ok"
+        assert commands_run == [f'save "{session_path}"']
 
 
 class TestResetTool:
