@@ -86,6 +86,8 @@ By default, the server auto-detects the latest installed ChimeraX. To use a spec
 
 `chimerax_rich_log` passes HTML through to ChimeraX with `is_html=True`; only use it with trusted input. `chimerax_rich_report` escapes plain text fields but allows raw HTML blocks for trusted local reports. Use `theme="auto"` to let generated reports follow the ChimeraX/system light or dark appearance where Qt WebEngine supports `prefers-color-scheme`; explicit `theme="light"` and `theme="dark"` remain available. Pass `save_html_path` to either rich-log tool to save the exact generated HTML locally; existing files require `overwrite=true`.
 
+Rich report values can include structured ChimeraX command links without raw HTML. Use `{"text":"#1/P:120", "spec":"#1/P:120", "action":"select"}` for common actions (`select`, `view`, `show`, `hide`, `metadata`) or `{"text":"open view", "command":"view #1/P:120"}` for an explicit command. Links are rendered as `cxcmd:` anchors in the ChimeraX Log.
+
 ### API Reference and Python Introspection
 
 | Tool | Description |
@@ -233,6 +235,24 @@ Themed block-composer report:
 }
 ```
 
+
+
+Structured command-link table cell:
+
+```json
+{
+  "type": "table",
+  "title": "Clickable residues",
+  "columns": ["Model", "Residue", "Action"],
+  "rows": [
+    [
+      {"text": "#1", "spec": "#1", "action": "select"},
+      {"text": "P:120", "spec": "#1/P:120", "action": "select"},
+      {"text": "view", "spec": "#1/P:120", "action": "view"}
+    ]
+  ]
+}
+```
 
 ## Script Recipe Examples
 

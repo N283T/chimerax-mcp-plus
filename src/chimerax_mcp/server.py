@@ -12,6 +12,7 @@ import tempfile
 import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 from fastmcp import FastMCP
@@ -705,20 +706,64 @@ def _validate_rich_report_blocks(blocks: list[dict[str, Any]] | None) -> str | N
     return None
 
 
+VALID_RICH_REPORT_LINK_ACTIONS = {"hide", "metadata", "select", "show", "view"}
+
+
+def _rich_report_command_from_item(item: dict[str, Any]) -> str | None:
+    """Return an explicit or spec-derived ChimeraX command link target."""
+    command = item.get("command")
+    if command is not None and str(command).strip():
+        return str(command).strip()
+
+    spec = item.get("spec")
+    if spec is None or not str(spec).strip():
+        return None
+
+    normalized_action = str(item.get("action") or "select").strip().lower()
+    if normalized_action not in VALID_RICH_REPORT_LINK_ACTIONS:
+        normalized_action = "select"
+    spec_text = str(spec).strip()
+    if normalized_action == "metadata":
+        return f"log metadata {spec_text}"
+    return f"{normalized_action} {spec_text}"
+
+
+def _rich_report_link_html(label: Any, command: str) -> str:
+    """Render an escaped ChimeraX Log command link."""
+    escaped_label = _escape_html_value(label)
+    escaped_href = html_lib.escape(f"cxcmd:{quote(command, safe='')}", quote=True)
+    return f'<a href="{escaped_href}">{escaped_label}</a>'
+
+
+def _rich_report_value_html(value: Any, field: str = "text") -> str:
+    """Render a plain, linked, or trusted-HTML rich report value."""
+    if isinstance(value, dict):
+        if value.get("html") is not None:
+            return str(value["html"])
+        label = value.get(field)
+        if label is None and field != "text":
+            label = value.get("text")
+        if label is None and field != "value":
+            label = value.get("value")
+        if label is None:
+            label = ""
+        command = _rich_report_command_from_item(value)
+        if command is not None:
+            return _rich_report_link_html(label, command)
+        return _escape_html_value(label)
+    return _escape_html_value(value)
+
+
 def _rich_report_text_or_html(block: dict[str, Any], field: str = "text") -> str:
     """Render a block text field, preserving trusted raw HTML when present."""
-    if block.get("html") is not None:
-        return str(block["html"])
-    return _escape_html_value(block.get(field, ""))
+    return _rich_report_value_html(block, field=field)
 
 
 def _rich_report_cell_html(cell: Any) -> tuple[str, str]:
     """Return rendered cell HTML and optional inline style."""
     if isinstance(cell, dict):
         style = str(cell.get("style", ""))
-        if cell.get("html") is not None:
-            return str(cell["html"]), style
-        return _escape_html_value(cell.get("text", "")), style
+        return _rich_report_value_html(cell), style
     return _escape_html_value(cell), ""
 
 
@@ -754,7 +799,7 @@ def _render_rich_report_heading(block: dict[str, Any], tokens: dict[str, str]) -
     size = "18px" if tag == "h3" else "20px"
     return (
         f'<{tag} style="font-size:{size}; margin:16px 0 8px 0; '
-        f'color:{tokens["text"]};">{_escape_html_value(block.get("text", ""))}</{tag}>'
+        f'color:{tokens["text"]};">{_rich_report_value_html(block)}</{tag}>'
     )
 
 
@@ -778,15 +823,15 @@ def _render_rich_report_cards(block: dict[str, Any], tokens: dict[str, str]) -> 
         if note is not None:
             note_html = (
                 f'<div style="color:{tokens["muted"]}; font-size:12px; margin-top:3px;">'
-                f"{_escape_html_value(note)}</div>"
+                f"{_rich_report_value_html(note)}</div>"
             )
         cards.append(
             f'<div style="background:{tokens["card"]}; border:1px solid {tokens["border"]}; '
             'border-radius:10px; padding:10px;">'
             f'<div style="color:{tokens["muted"]}; font-size:12px; font-weight:700;">'
-            f"{_escape_html_value(item.get('label', ''))}</div>"
+            f"{_rich_report_value_html(item.get('label', ''))}</div>"
             f'<div style="font-size:20px; font-weight:800; color:{value_color};">'
-            f"{_escape_html_value(item.get('value', ''))}</div>"
+            f"{_rich_report_value_html(item.get('value', ''))}</div>"
             f"{note_html}</div>"
         )
     return (
@@ -816,14 +861,14 @@ def _coerce_percentage(value: Any, maximum: Any) -> tuple[float, str]:
 def _render_rich_report_progress(block: dict[str, Any], tokens: dict[str, str]) -> str:
     """Render a horizontal progress bar."""
     percentage, display = _coerce_percentage(block.get("value", 0), block.get("max", 100))
-    label = _escape_html_value(block.get("label", "Progress"))
+    label = _rich_report_value_html(block.get("label", "Progress"))
     color = str(block.get("color") or tokens["accent"])
     note = block.get("note")
     note_html = ""
     if note is not None:
         note_html = (
             f'<div style="color:{tokens["muted"]}; font-size:12px; margin-top:4px;">'
-            f"{_escape_html_value(note)}</div>"
+            f"{_rich_report_value_html(note)}</div>"
         )
     return (
         f'<div class="chimerax-mcp-rich-report-progress" style="margin:12px 0 16px 0;">'
@@ -859,7 +904,7 @@ def _render_rich_report_columns(block: dict[str, Any], tokens: dict[str, str]) -
 
 def _render_rich_report_table(block: dict[str, Any], tokens: dict[str, str]) -> str:
     """Render a styled table block."""
-    title = _escape_html_value(block.get("title", ""))
+    title = _rich_report_value_html(block.get("title", ""))
     columns = block.get("columns") or []
     rows = block.get("rows") or []
     header_color = str(block.get("header_color") or tokens["table_header"])
@@ -909,7 +954,7 @@ def _render_rich_report_table(block: dict[str, Any], tokens: dict[str, str]) -> 
 def _render_rich_report_callout(block: dict[str, Any], tokens: dict[str, str]) -> str:
     """Render a callout block."""
     bg, border = _tone_color(str(block.get("tone", "note")), tokens)
-    title = _escape_html_value(block.get("title", ""))
+    title = _rich_report_value_html(block.get("title", ""))
     title_html = f"<b>{title}</b> " if title else ""
     return (
         f'<div style="border-left:4px solid {border}; background:{bg}; padding:8px 10px; '
@@ -927,7 +972,7 @@ def _render_rich_report_badges(block: dict[str, Any], tokens: dict[str, str]) ->
         badges.append(
             f'<span style="display:inline-block; background:{color}; color:{tokens["badge_text"]}; '
             "border-radius:999px; padding:4px 10px; font-weight:700; font-size:12px; "
-            f'margin:0 6px 6px 0;">{_escape_html_value(item_dict.get("label", ""))}</span>'
+            f'margin:0 6px 6px 0;">{_rich_report_value_html(item_dict, field="label")}</span>'
         )
     return f'<div style="margin:8px 0 12px 0;">{"".join(badges)}</div>'
 
@@ -943,13 +988,14 @@ def _render_rich_report_legend(block: dict[str, Any], tokens: dict[str, str]) ->
         description_html = ""
         if description is not None:
             description_html = (
-                f' <span style="color:{tokens["muted"]};">{_escape_html_value(description)}</span>'
+                f' <span style="color:{tokens["muted"]};">'
+                f'{_rich_report_value_html(description)}</span>'
             )
         items.append(
             '<div style="display:flex; align-items:center; gap:8px; margin:4px 12px 4px 0;">'
             f'<span style="display:inline-block; width:14px; height:14px; border-radius:3px; '
             f'background:{color}; border:1px solid {tokens["border"]};"></span>'
-            f"<span><b>{_escape_html_value(item.get('label', ''))}</b>{description_html}</span>"
+            f"<span><b>{_rich_report_value_html(item, field='label')}</b>{description_html}</span>"
             "</div>"
         )
     return (
