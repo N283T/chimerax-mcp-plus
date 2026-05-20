@@ -1,6 +1,6 @@
 [project]
 name = "chimerax-mcp-plus"
-version = "0.5.0"
+version = "0.5.1"
 description = "MCP server for UCSF ChimeraX molecular visualization"
 readme = "README.md"
 requires-python = ">=3.12"
