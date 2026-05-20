@@ -5,13 +5,16 @@ from __future__ import annotations
 import atexit
 import contextlib
 import datetime
+import hashlib
 import html as html_lib
+import json
 import os
 import subprocess
 import tempfile
 import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import httpx
 from fastmcp import FastMCP
@@ -31,6 +34,7 @@ from chimerax_mcp.rich_report import (
     _validate_rich_report_blocks,
 )
 from chimerax_mcp.script_recipes import read_script_recipe, search_script_recipes
+from chimerax_mcp.structure_report import build_structure_report_blocks, normalize_pdb_id
 
 mcp = FastMCP("chimerax-mcp")
 
@@ -44,6 +48,7 @@ MIN_IMAGE_DIMENSION = 1
 
 # View management constants
 VALID_AXES = {"x", "y", "z"}
+VALID_EXTERNAL_LINK_TARGETS = {"chimerax", "system"}
 VALID_LOG_LEVELS = {"error", "info", "warning"}
 _RESET_COMMANDS = [
     "hide pseudobonds",
@@ -404,6 +409,76 @@ def _validate_log_level(level: str) -> str | None:
     return normalized
 
 
+def _validate_external_link_target(target: str) -> str | None:
+    """Normalize and validate how external rich-report links should open."""
+    normalized = target.strip().lower()
+    if normalized not in VALID_EXTERNAL_LINK_TARGETS:
+        return None
+    return normalized
+
+
+def _is_safe_external_url(url: str) -> bool:
+    """Return True for HTTP(S) URLs that ChimeraX may open externally."""
+    parsed = urlparse(url.strip())
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _write_external_url_open_script(url: str) -> Path:
+    """Write a ChimeraX runscript that opens a URL in the system browser."""
+    url_text = url.strip()
+    if not _is_safe_external_url(url_text):
+        raise ValueError("external URL must be an http or https URL")
+
+    digest = hashlib.sha256(url_text.encode("utf-8")).hexdigest()[:16]
+    script_dir = Path.home().joinpath(".local", "share", "chimerax-mcp", "url-openers")
+    script_dir.mkdir(parents=True, exist_ok=True)
+    script_path = script_dir.joinpath(f"open_url_{digest}.py")
+    script = (
+        "import webbrowser\n\n"
+        f"url = {json.dumps(url_text)}\n"
+        "ok = webbrowser.open(url, new=2, autoraise=True)\n"
+        "if ok:\n"
+        "    session.logger.info('Opened external URL in system browser: ' + url)\n"
+        "else:\n"
+        "    session.logger.warning('Could not open external URL in system browser: ' + url)\n"
+    )
+    script_path.write_text(script)
+    return script_path
+
+
+def _external_url_command(url: str) -> str | None:
+    """Return a ChimeraX command that opens an external URL, or None if invalid."""
+    if not _is_safe_external_url(url):
+        return None
+    script_path = _write_external_url_open_script(url)
+    return f"runscript {quote_chimerax_path(script_path)}"
+
+
+def _retarget_external_links(value: Any, target: str) -> Any:
+    """Convert rich-report URL values to system-browser command links when requested."""
+    if target == "chimerax":
+        return value
+    if isinstance(value, list):
+        return [_retarget_external_links(item, target) for item in value]
+    if not isinstance(value, dict):
+        return value
+    if value.get("html") is not None:
+        return value
+
+    url = value.get("url") or value.get("href")
+    has_command_link = value.get("command") is not None or value.get("spec") is not None
+    if url is not None and not has_command_link:
+        command = _external_url_command(str(url))
+        if command is not None:
+            converted = {key: val for key, val in value.items() if key not in {"url", "href"}}
+            converted["command"] = command
+            return {
+                key: _retarget_external_links(val, target) for key, val in converted.items()
+            }
+
+    return {key: _retarget_external_links(val, target) for key, val in value.items()}
+
+
 def _quote_chimerax_path(path: Path) -> str:
     """Quote a path for a ChimeraX command when quoting is needed."""
     return quote_chimerax_path(path)
@@ -596,6 +671,7 @@ def chimerax_rich_report(
     theme: str = "auto",
     accent_color: str | None = None,
     blocks: list[dict[str, Any]] | None = None,
+    external_link_target: str = "system",
     level: str = "info",
     save_html_path: str | None = None,
     overwrite: bool = False,
@@ -611,6 +687,10 @@ def chimerax_rich_report(
         theme: Visual theme - ``auto``, ``dark``, or ``light`` (default: auto).
         accent_color: Optional primary accent color.
         blocks: Ordered rich content blocks.
+        external_link_target: ``system`` opens safe external URL links in the
+            default browser via ChimeraX ``runscript`` command links;
+            ``chimerax`` leaves them as direct HTTP(S) links for ChimeraX's
+            built-in browser/help viewer.
         level: Log level - ``info``, ``warning``, or ``error`` (default: info).
         save_html_path: Optional local path where the generated HTML should be saved.
         overwrite: If True, allow replacing an existing ``save_html_path``.
@@ -635,13 +715,130 @@ def chimerax_rich_report(
             "message": f"theme must be one of: {', '.join(sorted(VALID_RICH_REPORT_THEMES))}",
         }
 
+    normalized_external_link_target = _validate_external_link_target(external_link_target)
+    if normalized_external_link_target is None:
+        return {
+            "status": "error",
+            "message": (
+                "external_link_target must be one of: "
+                f"{', '.join(sorted(VALID_EXTERNAL_LINK_TARGETS))}"
+            ),
+        }
+
     validation_error = _validate_rich_report_blocks(blocks)
     if validation_error is not None:
         return {"status": "error", "message": validation_error}
 
+    report_blocks = _retarget_external_links(blocks, normalized_external_link_target)
     report_html = _build_rich_report_html(
         title=title,
         subtitle=subtitle,
+        theme=normalized_theme,
+        accent_color=accent_color,
+        blocks=report_blocks,
+    )
+    return _write_rich_log(
+        html=report_html,
+        level=normalized_level,
+        save_html_path=save_html_path,
+        overwrite=overwrite,
+    )
+
+
+def _validate_optional_object_list(value: Any, name: str) -> str | None:
+    """Validate an optional list of JSON objects for report inputs."""
+    if value is None:
+        return None
+    if not isinstance(value, list):
+        return f"{name} must be a list"
+    for index, item in enumerate(value):
+        if not isinstance(item, dict):
+            return f"{name}[{index}] must be an object"
+    return None
+
+
+@mcp.tool()
+def chimerax_structure_report(
+    model_spec: str = "#1",
+    model_name: str | None = None,
+    pdb_id: str | None = None,
+    chain_mappings: list[dict[str, Any]] | None = None,
+    external_features: list[dict[str, Any]] | None = None,
+    include_db_links: bool = True,
+    title: str | None = None,
+    subtitle: str | None = None,
+    theme: str = "auto",
+    accent_color: str | None = None,
+    external_link_target: str = "system",
+    level: str = "info",
+    save_html_path: str | None = None,
+    overwrite: bool = False,
+) -> dict[str, Any]:
+    """Render a structure report with DB URLs and mapped feature links.
+
+    ``external_features`` is intended for annotations fetched by an external
+    source such as Togo MCP/UniProt SPARQL. Features with a UniProt position are
+    mapped onto ChimeraX residue specs using ``chain_mappings`` entries with
+    ``chain_id``, ``uniprot_start``, ``uniprot_end``, ``pdb_start``, and
+    ``pdb_end``.
+    """
+    if not model_spec or not model_spec.strip():
+        return {"status": "error", "message": "model_spec must not be empty"}
+
+    normalized_level = _validate_log_level(level)
+    if normalized_level is None:
+        return {
+            "status": "error",
+            "message": f"level must be one of: {', '.join(sorted(VALID_LOG_LEVELS))}",
+        }
+
+    normalized_theme = theme.strip().lower()
+    if normalized_theme not in VALID_RICH_REPORT_THEMES:
+        return {
+            "status": "error",
+            "message": f"theme must be one of: {', '.join(sorted(VALID_RICH_REPORT_THEMES))}",
+        }
+
+    normalized_external_link_target = _validate_external_link_target(external_link_target)
+    if normalized_external_link_target is None:
+        return {
+            "status": "error",
+            "message": (
+                "external_link_target must be one of: "
+                f"{', '.join(sorted(VALID_EXTERNAL_LINK_TARGETS))}"
+            ),
+        }
+
+    for value, name in (
+        (chain_mappings, "chain_mappings"),
+        (external_features, "external_features"),
+    ):
+        validation_error = _validate_optional_object_list(value, name)
+        if validation_error is not None:
+            return {"status": "error", "message": validation_error}
+
+    normalized_model_spec = model_spec.strip()
+    normalized_pdb_id = normalize_pdb_id(pdb_id)
+    report_title = title or "Structure report"
+    report_subtitle = subtitle
+    if report_subtitle is None:
+        subtitle_parts = [normalized_model_spec]
+        if normalized_pdb_id is not None:
+            subtitle_parts.append(f"PDB {normalized_pdb_id}")
+        report_subtitle = " · ".join(subtitle_parts)
+
+    blocks = build_structure_report_blocks(
+        model_spec=normalized_model_spec,
+        model_name=model_name,
+        pdb_id=normalized_pdb_id,
+        chain_mappings=chain_mappings,
+        external_features=external_features,
+        include_db_links=include_db_links,
+    )
+    blocks = _retarget_external_links(blocks, normalized_external_link_target)
+    report_html = _build_rich_report_html(
+        title=report_title,
+        subtitle=report_subtitle,
         theme=normalized_theme,
         accent_color=accent_color,
         blocks=blocks,

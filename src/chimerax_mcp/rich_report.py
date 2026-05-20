@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import html as html_lib
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlparse
 
 VALID_RICH_REPORT_THEMES = {"auto", "dark", "light"}
 VALID_RICH_REPORT_BLOCK_TYPES = {
@@ -213,6 +213,17 @@ def _rich_report_link_html(label: Any, command: str) -> str:
     return f'<a href="{escaped_href}">{escaped_label}</a>'
 
 
+def _rich_report_url_html(label: Any, url: str) -> str | None:
+    """Render an escaped external URL link for safe HTTP(S) targets."""
+    url_text = url.strip()
+    parsed = urlparse(url_text)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+    escaped_label = _escape_html_value(label)
+    escaped_href = html_lib.escape(url_text, quote=True)
+    return f'<a href="{escaped_href}">{escaped_label}</a>'
+
+
 def _rich_report_value_html(value: Any, field: str = "text") -> str:
     """Render a plain, linked, or trusted-HTML rich report value."""
     if isinstance(value, dict):
@@ -225,9 +236,16 @@ def _rich_report_value_html(value: Any, field: str = "text") -> str:
             label = value.get("value")
         if label is None:
             label = ""
+        if isinstance(label, dict):
+            return _rich_report_value_html(label)
         command = _rich_report_command_from_item(value)
         if command is not None:
             return _rich_report_link_html(label, command)
+        url = value.get("url") or value.get("href")
+        if url is not None:
+            link_html = _rich_report_url_html(label, str(url))
+            if link_html is not None:
+                return link_html
         return _escape_html_value(label)
     return _escape_html_value(value)
 

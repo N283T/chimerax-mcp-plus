@@ -83,10 +83,11 @@ By default, the server auto-detects the latest installed ChimeraX. To use a spec
 |------|-------------|
 | `chimerax_rich_log` | Write trusted caller-provided HTML to the ChimeraX Log, optionally saving the generated HTML |
 | `chimerax_rich_report` | Compose a themed rich HTML report from flexible blocks such as cards, tables, progress bars, columns, badges, callouts, legends, and raw HTML |
+| `chimerax_structure_report` | Compose a structure report with RCSB/PDBe/PDBj/UniProt URL links plus caller-provided UniProt feature annotations mapped to clickable ChimeraX residue links |
 
 `chimerax_rich_log` passes HTML through to ChimeraX with `is_html=True`; only use it with trusted input. `chimerax_rich_report` escapes plain text fields but allows raw HTML blocks for trusted local reports. Use `theme="auto"` to let generated reports follow the ChimeraX/system light or dark appearance where Qt WebEngine supports `prefers-color-scheme`; explicit `theme="light"` and `theme="dark"` remain available. Pass `save_html_path` to either rich-log tool to save the exact generated HTML locally; existing files require `overwrite=true`.
 
-Rich report values can include structured ChimeraX command links without raw HTML. Use `{"text":"#1/P:120", "spec":"#1/P:120", "action":"select"}` for common actions (`select`, `view`, `show`, `hide`, `metadata`) or `{"text":"open view", "command":"view #1/P:120"}` for an explicit command. Links are rendered as `cxcmd:` anchors in the ChimeraX Log.
+Rich report values can include structured ChimeraX command links without raw HTML. Use `{"text":"#1/P:120", "spec":"#1/P:120", "action":"select"}` for common actions (`select`, `view`, `show`, `hide`, `metadata`) or `{"text":"open view", "command":"view #1/P:120"}` for an explicit command. Links are rendered as `cxcmd:` anchors in the ChimeraX Log. Safe external database links can use `{"text":"P00698", "url":"https://www.uniprot.org/uniprotkb/P00698/entry"}`; only `http` and `https` URLs are linked. By default, rich-report URL links are converted to ChimeraX `runscript` command links that open the URL in the system default browser. Pass `external_link_target="chimerax"` to keep direct HTTP(S) links for ChimeraX's built-in browser/help viewer.
 
 ### API Reference and Python Introspection
 
@@ -125,6 +126,68 @@ Recipes are static examples and are not executed by these tools. They are intend
 | `chimerax_session_save` | Save session |
 | `chimerax_session_open` | Load session |
 
+
+## Structure Reports with External Annotations
+
+`chimerax_structure_report` renders a ready-to-read ChimeraX Log report from structure metadata plus optional external annotations. It is designed to pair well with Togo MCP: fetch UniProt/PDB annotations with Togo MCP, normalize them to `external_features`, then pass them to ChimeraX MCP for residue mapping and clickable display.
+
+Example for hen egg-white lysozyme (`PDB 1AKI`, `UniProt P00698`), where the PDB chain is the mature protein and UniProt has signal peptide residues 1-18:
+
+```json
+{
+  "model_spec": "#1",
+  "model_name": "1aki",
+  "pdb_id": "1AKI",
+  "chain_mappings": [
+    {
+      "chain_id": "A",
+      "uniprot_accession": "P00698",
+      "uniprot_start": 19,
+      "uniprot_end": 147,
+      "pdb_start": 1,
+      "pdb_end": 129
+    }
+  ],
+  "external_features": [
+    {
+      "type": "Active site",
+      "uniprot_position": 53,
+      "description": "Catalytic residue",
+      "source_url": "https://www.uniprot.org/uniprotkb/P00698/entry#feature-viewer"
+    }
+  ],
+  "external_link_target": "system"
+}
+```
+
+The report includes RCSB, PDBe, PDBj, and UniProt URL links when IDs are provided. Mapped features become ChimeraX command links such as `select #1/A:35` and `view #1/A:35`. External DB/source links open in the system default browser by default; set `external_link_target` to `"chimerax"` if you prefer ChimeraX's internal browser.
+
+Useful Togo MCP / UniProt SPARQL template for feature annotations:
+
+```sparql
+PREFIX up: <http://purl.uniprot.org/core/>
+PREFIX faldo: <http://biohackathon.org/resource/faldo#>
+PREFIX uniprot: <http://purl.uniprot.org/uniprot/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?annType ?comment ?begin ?end WHERE {
+  VALUES ?annType {
+    up:Active_Site_Annotation
+    up:Binding_Site_Annotation
+    up:Metal_Binding_Annotation
+    up:Site_Annotation
+  }
+  uniprot:P00698 up:annotation ?ann .
+  ?ann a ?annType .
+  OPTIONAL { ?ann rdfs:comment ?comment . }
+  OPTIONAL {
+    ?ann up:range ?range .
+    OPTIONAL { ?range faldo:begin/faldo:position ?begin . }
+    OPTIONAL { ?range faldo:end/faldo:position ?end . }
+  }
+}
+ORDER BY ?begin
+```
 
 ## How It Works
 

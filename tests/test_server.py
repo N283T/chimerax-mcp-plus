@@ -32,6 +32,7 @@ from chimerax_mcp.server import (
     chimerax_session_save,
     chimerax_start,
     chimerax_status,
+    chimerax_structure_report,
     chimerax_tool_screenshot,
     chimerax_turn,
     chimerax_view,
@@ -1503,6 +1504,40 @@ class TestRichReport:
         assert "<P:120>" not in html
         assert 'href="cxcmd:select%20%231%2FP%3A120"' in html
 
+    def test_build_rich_report_html_renders_external_http_links(self):
+        html = _build_rich_report_html(
+            title="Database links",
+            blocks=[
+                {
+                    "type": "table",
+                    "columns": ["Database", "Link"],
+                    "rows": [
+                        [
+                            "UniProt",
+                            {
+                                "text": "P00698",
+                                "url": "https://www.uniprot.org/uniprotkb/P00698/entry",
+                            },
+                        ],
+                    ],
+                }
+            ],
+        )
+
+        assert '<a href="https://www.uniprot.org/uniprotkb/P00698/entry"' in html
+        assert 'target="_blank"' not in html
+        assert 'rel="noopener noreferrer"' not in html
+        assert ">P00698</a>" in html
+
+    def test_build_rich_report_html_does_not_link_non_http_urls(self):
+        html = _build_rich_report_html(
+            title="Database links",
+            blocks=[{"type": "paragraph", "text": {"text": "bad", "url": "javascript:alert(1)"}}],
+        )
+
+        assert "javascript:alert" not in html
+        assert ">bad</a>" not in html
+
     def test_build_rich_report_html_renders_badges_and_legend(self):
         html = _build_rich_report_html(
             title="Legend report",
@@ -1635,6 +1670,190 @@ class TestRichReport:
         assert "Complete" in captured["html"]
         assert captured["save_html_path"] == "/tmp/report.html"
         assert captured["overwrite"] == "True"
+
+    def test_rich_report_system_external_links_use_runscript_command(self):
+        captured: dict[str, str] = {}
+
+        def fake_write_rich_log(
+            html: str,
+            level: str,
+            save_html_path: str | None = None,  # noqa: ARG001
+            overwrite: bool = False,  # noqa: ARG001
+        ):
+            captured["html"] = html
+            return {"status": "ok", "level": level, "message": "Rich log written"}
+
+        with (
+            patch("chimerax_mcp.server._write_rich_log", side_effect=fake_write_rich_log),
+            patch(
+                "chimerax_mcp.server._write_external_url_open_script",
+                return_value=Path("/tmp/open_uniprot.py"),
+            ) as write_script,
+        ):
+            result = chimerax_rich_report.fn(
+                title="Database links",
+                blocks=[
+                    {
+                        "type": "paragraph",
+                        "text": {
+                            "text": "UniProt",
+                            "url": "https://www.uniprot.org/uniprotkb/P00698/entry",
+                        },
+                    }
+                ],
+            )
+
+        assert result["status"] == "ok"
+        write_script.assert_called_once_with("https://www.uniprot.org/uniprotkb/P00698/entry")
+        assert '<a href="cxcmd:runscript%20%2Ftmp%2Fopen_uniprot.py">UniProt</a>' in captured[
+            "html"
+        ]
+
+    def test_rich_report_chimerax_external_links_preserve_http_href(self):
+        captured: dict[str, str] = {}
+
+        def fake_write_rich_log(
+            html: str,
+            level: str,
+            save_html_path: str | None = None,  # noqa: ARG001
+            overwrite: bool = False,  # noqa: ARG001
+        ):
+            captured["html"] = html
+            return {"status": "ok", "level": level, "message": "Rich log written"}
+
+        with patch("chimerax_mcp.server._write_rich_log", side_effect=fake_write_rich_log):
+            result = chimerax_rich_report.fn(
+                title="Database links",
+                external_link_target="chimerax",
+                blocks=[
+                    {
+                        "type": "paragraph",
+                        "text": {
+                            "text": "UniProt",
+                            "url": "https://www.uniprot.org/uniprotkb/P00698/entry",
+                        },
+                    }
+                ],
+            )
+
+        assert result["status"] == "ok"
+        assert '<a href="https://www.uniprot.org/uniprotkb/P00698/entry">UniProt</a>' in captured[
+            "html"
+        ]
+
+    def test_rich_report_rejects_invalid_external_link_target(self):
+        result = chimerax_rich_report.fn(title="Report", external_link_target="chrome")
+
+        assert result["status"] == "error"
+        assert "external_link_target" in result["message"]
+
+
+class TestStructureReportTool:
+    def test_structure_report_builds_db_and_feature_links(self):
+        captured: dict[str, str] = {}
+
+        def fake_write_rich_log(
+            html: str,
+            level: str,
+            save_html_path: str | None = None,
+            overwrite: bool = False,
+        ):
+            captured["html"] = html
+            captured["level"] = level
+            captured["save_html_path"] = save_html_path or ""
+            captured["overwrite"] = str(overwrite)
+            return {"status": "ok", "level": level, "message": "Rich log written"}
+
+        with patch("chimerax_mcp.server._write_rich_log", side_effect=fake_write_rich_log):
+            result = chimerax_structure_report.fn(
+                model_spec="#1",
+                model_name="1aki",
+                pdb_id="1aki",
+                chain_mappings=[
+                    {
+                        "chain_id": "A",
+                        "uniprot_accession": "P00698",
+                        "uniprot_start": 19,
+                        "uniprot_end": 147,
+                        "pdb_start": 1,
+                        "pdb_end": 129,
+                    }
+                ],
+                external_features=[
+                    {
+                        "type": "Active site",
+                        "uniprot_position": 53,
+                        "description": "Catalytic residue",
+                        "source_url": "https://www.uniprot.org/uniprotkb/P00698/entry#feature-viewer",
+                    }
+                ],
+                external_link_target="chimerax",
+                save_html_path="/tmp/structure-report.html",
+                overwrite=True,
+            )
+
+        assert result == {"status": "ok", "level": "info", "message": "Rich log written"}
+        assert captured["save_html_path"] == "/tmp/structure-report.html"
+        assert captured["overwrite"] == "True"
+        assert "Structure report" in captured["html"]
+        assert "https://www.rcsb.org/structure/1AKI" in captured["html"]
+        assert "https://www.uniprot.org/uniprotkb/P00698/entry" in captured["html"]
+        assert "Catalytic residue" in captured["html"]
+        assert 'href="cxcmd:select%20%231%2FA%3A35"' in captured["html"]
+
+    def test_structure_report_defaults_external_links_to_system_browser_commands(self):
+        captured: dict[str, str] = {}
+
+        def fake_write_rich_log(
+            html: str,
+            level: str,
+            save_html_path: str | None = None,  # noqa: ARG001
+            overwrite: bool = False,  # noqa: ARG001
+        ):
+            captured["html"] = html
+            return {"status": "ok", "level": level, "message": "Rich log written"}
+
+        with (
+            patch("chimerax_mcp.server._write_rich_log", side_effect=fake_write_rich_log),
+            patch(
+                "chimerax_mcp.server._write_external_url_open_script",
+                return_value=Path("/tmp/open_db.py"),
+            ) as write_script,
+        ):
+            result = chimerax_structure_report.fn(
+                model_spec="#1",
+                pdb_id="1AKI",
+                chain_mappings=[
+                    {
+                        "chain_id": "A",
+                        "uniprot_accession": "P00698",
+                        "uniprot_start": 19,
+                        "uniprot_end": 147,
+                        "pdb_start": 1,
+                        "pdb_end": 129,
+                    }
+                ],
+                external_features=[
+                    {
+                        "type": "Active site",
+                        "uniprot_position": 53,
+                        "source_url": "https://www.uniprot.org/uniprotkb/P00698/entry#feature-viewer",
+                    }
+                ],
+            )
+
+        assert result["status"] == "ok"
+        assert write_script.call_count == 5
+        assert '<a href="cxcmd:runscript%20%2Ftmp%2Fopen_db.py">source</a>' in captured["html"]
+
+    def test_structure_report_rejects_malformed_feature_list(self):
+        result = chimerax_structure_report.fn(
+            model_spec="#1",
+            external_features={"type": "Active site"},
+        )
+
+        assert result["status"] == "error"
+        assert "external_features" in result["message"]
 
 
 class TestScriptRecipeTools:
