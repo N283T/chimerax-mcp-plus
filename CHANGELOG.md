@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-05-20
+
+### Added
+- Add `chimerax_structure_report()` for DB URL links and caller-provided UniProt feature annotations mapped to clickable ChimeraX residues.
+- Allow rich report values to render safe external `http`/`https` links via `url` or `href` fields, opening in the system default browser by default via generated `runscript` command links.
+- Add `external_link_target="chimerax"` for rich reports and structure reports when direct ChimeraX built-in browser links are preferred.
+
 ## [0.5.1] - 2026-05-20
 
 ### Fixed
